@@ -12,13 +12,35 @@ Infraestrutura provisionada via OpenTofu + KVM, configurada via Ansible.
 | bigdata    | Data Warehouse / Data Lake        | Python       |
 | monitoring | Monitoramento do ambiente         | Docker + k3s |
 
+## Estrutura do repositório
+
+```
+real-estate/
+├── iac/
+│   ├── main.tf           # Provisionamento das VMs (OpenTofu)
+│   └── cloud_init.cfg    # Inicialização das VMs (cloud-init)
+├── ansible/
+│   └── playbooks/        # Configuração automatizada das VMs
+├── scripts/
+│   └── generator.py      # Geração de dados imobiliários (São Paulo)
+├── data/                 # CSVs gerados (ignorados pelo git)
+├── .gitignore
+├── .env.example
+└── README.md
+```
+
 ## Pré-requisitos
 
-- KVM/libvirt instalado e rodando
-- OpenTofu instalado
-- Chave SSH em `~/.ssh/devops_lab`
-- UFW: regra para virbr0 em `/etc/ufw/before.rules`
-- libvirt: `firewall_backend = "nftables"` em `/etc/libvirt/network.conf`
+| Dependência | Versão mínima | Finalidade |
+|-------------|---------------|------------|
+| OpenTofu    | 1.6+          | IaC — provisionamento das VMs |
+| KVM/libvirt | 10.0+         | Hypervisor local |
+| QEMU        | 8.0+          | Emulação de hardware |
+| SSH         | —             | Acesso às VMs |
+
+**Configurações de sistema necessárias (Arch Linux / UFW):**
+- UFW: adicionar regra para `virbr0` em `/etc/ufw/before.rules`
+- libvirt: definir `firewall_backend = "nftables"` em `/etc/libvirt/network.conf`
 
 ## Subir a infraestrutura
 

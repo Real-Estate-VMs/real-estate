@@ -18,6 +18,9 @@ override.tf.json
 ansible/inventory.ini
 *.retry
 
+# Dados gerados
+data/*.csv
+
 # Sistema
 .DS_Store
 Thumbs.db
