@@ -9,24 +9,23 @@
     repo_url: "https://{{ github_token }}@github.com/Real-Estate-VMs/real-estate.git"
 
   tasks:
+    - name: Force apt to use IPv4
+      copy:
+        content: 'Acquire::ForceIPv4 "true";'
+        dest: /etc/apt/apt.conf.d/99force-ipv4
+
     - name: Update apt cache
       apt:
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Install Python and pip
+    - name: Install dependencies
       apt:
         name:
           - python3
-          - python3-pip
-          - python3-venv
+          - python3-dotenv
           - git
         state: present
-
-    - name: Install python-dotenv
-      pip:
-        name: python-dotenv
-        executable: pip3
 
     - name: Clone repository
       git:

@@ -18,11 +18,22 @@ cd iac/
 tofu apply -auto-approve
 cd ..
 
+echo "==> Waiting for VMs to get IP addresses..."
+until sudo virsh net-dhcp-leases default | grep -q "generator"; do
+  echo "    still waiting..."
+  sleep 10
+done
+echo "    All VMs are up."
+
 echo "==> Generating Ansible inventory..."
 bash scripts/gen_inventory.sh
 
+echo "==> Adding SSH key to agent..."
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/devops_lab
+
 echo "==> Configuring generator VM..."
-ansible-playbook -i ansible/inventory.ini ansible/playbooks/generator.yml \
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory.ini ansible/playbooks/generator.yml \
   --extra-vars "github_token=$GITHUB_TOKEN"
 
 echo "==> Done. Generator is running."

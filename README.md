@@ -33,23 +33,24 @@ real-estate/
 
 ## Pré-requisitos
 
-| Dependência | Versão mínima | Finalidade |
-|-------------|---------------|------------|
+| Dependência | Versão mínima | Finalidade                    |
+| ----------- | ------------- | ----------------------------- |
 | OpenTofu    | 1.6+          | IaC — provisionamento das VMs |
-| KVM/libvirt | 10.0+         | Hypervisor local |
-| QEMU        | 8.0+          | Emulação de hardware |
-| SSH         | —             | Acesso às VMs |
+| KVM/libvirt | 10.0+         | Hypervisor local              |
+| QEMU        | 8.0+          | Emulação de hardware          |
+| SSH         | —             | Acesso às VMs                 |
 
 **Configurações de sistema necessárias (Arch Linux / UFW):**
+
 - UFW: adicionar regra para `virbr0` em `/etc/ufw/before.rules`
+- UFW: `sudo ufw default allow FORWARD` para as VMs acessarem a internet
 - libvirt: definir `firewall_backend = "nftables"` em `/etc/libvirt/network.conf`
 
 ## Subir a infraestrutura
 
 ```bash
-cd iac/
-tofu init
-tofu apply
+cp .env.example .env
+bash setup.sh
 ```
 
 ## Ver IPs das VMs

@@ -70,6 +70,6 @@ resource "libvirt_domain" "vm" {
 
 output "ips" {
   value = {
-    for i, vm in libvirt_domain.vm : local.vms[i] => vm.network_interface[0].addresses[0]
+    for i, vm in libvirt_domain.vm : local.vms[i] => try(vm.network_interface[0].addresses[0], "pending")
   }
 }

@@ -3,7 +3,7 @@
 # Run this after `tofu apply` to update the inventory automatically.
 
 INVENTORY="$(dirname "$0")/../ansible/inventory.ini"
-SSH_KEY="~/.ssh/devops_lab"
+SSH_KEY="$HOME/.ssh/devops_lab"
 
 get_ip() {
   sudo virsh net-dhcp-leases default \
@@ -40,3 +40,8 @@ EOF
 
 echo "Inventory written to $INVENTORY"
 cat "$INVENTORY"
+
+echo "Cleaning known_hosts for current IPs..."
+for ip in "$GENERATOR_IP" "$PROCESSING_IP" "$BIGDATA_IP" "$MONITORING_IP"; do
+  [ -n "$ip" ] && ssh-keygen -R "$ip" 2>/dev/null
+done
