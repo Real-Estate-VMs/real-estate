@@ -153,7 +153,7 @@ def push_to_github(filepath):
         ["git", "-C", REPO_PATH, "pull", "--rebase"],
         ["cp", filepath, os.path.join(REPO_PATH, "data", "raw", filename)],
         ["git", "-C", REPO_PATH, "add", f"data/raw/{filename}"],
-        ["git", "-C", REPO_PATH, "commit", "-m", f"data: add {filename}"],
+        ["git", "-C", REPO_PATH, "commit", "-m", f"raw data: add {filename}"],
         ["git", "-C", REPO_PATH, "push"],
     ]
     for cmd in commands:
