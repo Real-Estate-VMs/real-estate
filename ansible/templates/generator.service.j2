@@ -1,0 +1,13 @@
+[Unit]
+Description=Real Estate Data Generator
+After=network.target
+
+[Service]
+User=devops
+WorkingDirectory=/home/devops/repo
+ExecStart=/usr/bin/python3 /home/devops/repo/scripts/generator.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

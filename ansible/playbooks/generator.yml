@@ -1,0 +1,72 @@
+---
+- name: Configure generator VM
+  hosts: generator
+  become: true
+
+  vars:
+    devops_home: /home/devops
+    repo_path: /home/devops/repo
+    repo_url: "https://{{ github_token }}@github.com/Real-Estate-VMs/real-estate.git"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Python and pip
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - python3-venv
+          - git
+        state: present
+
+    - name: Install python-dotenv
+      pip:
+        name: python-dotenv
+        executable: pip3
+
+    - name: Clone repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_path }}"
+        version: main
+        force: false
+      become_user: devops
+
+    - name: Configure git identity
+      shell: |
+        git config --global user.name "generator-vm"
+        git config --global user.email "generator@real-estate"
+      become_user: devops
+
+    - name: Create data/raw directory
+      file:
+        path: "{{ devops_home }}/data/raw"
+        state: directory
+        owner: devops
+        group: devops
+        mode: "0755"
+
+    - name: Deploy .env file
+      template:
+        src: ../templates/generator.env.j2
+        dest: "{{ repo_path }}/.env"
+        owner: devops
+        group: devops
+        mode: "0600"
+
+    - name: Deploy systemd service
+      template:
+        src: ../templates/generator.service.j2
+        dest: /etc/systemd/system/generator.service
+        mode: "0644"
+
+    - name: Enable and start generator service
+      systemd:
+        name: generator
+        enabled: true
+        state: started
+        daemon_reload: true

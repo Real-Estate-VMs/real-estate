@@ -23,7 +23,9 @@ real-estate/
 │   └── playbooks/        # Configuração automatizada das VMs
 ├── scripts/
 │   └── generator.py      # Geração de dados imobiliários (São Paulo)
-├── data/                 # CSVs gerados (ignorados pelo git)
+├── data/
+│   ├── raw/              # CSVs gerados pelo generator
+│   └── processed/        # CSVs tratados pelo R
 ├── .gitignore
 ├── .env.example
 └── README.md

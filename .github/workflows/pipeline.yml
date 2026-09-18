@@ -1,0 +1,22 @@
+name: Raw Data Ingestion
+
+on:
+  push:
+    paths:
+      - "data/raw/*.csv"
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trigger processing on R VM
+        # TODO: SSH into processing VM and run the R script
+        # Requires PROCESSING_VM_IP secret when VM is deployed
+        run: |
+          echo "New CSV detected in data/"
+          echo "File: ${{ github.event.head_commit.modified }}"
+          echo "Pending: configure SSH access to processing VM"
