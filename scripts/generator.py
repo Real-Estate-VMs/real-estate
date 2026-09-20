@@ -14,7 +14,7 @@ OUTPUT_DIR       = os.getenv("OUTPUT_DIR", "/home/devops/data/raw")
 REPO_PATH        = os.getenv("REPO_PATH", "/home/devops/repo")
 INTERVAL_SECONDS = int(os.getenv("INTERVAL_SECONDS", 1800))
 BATCH_SIZE_MIN   = int(os.getenv("BATCH_SIZE_MIN", 50))
-BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 500))
+BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 200))
 
 SP_NEIGHBORHOODS = [
     ("Moema",               -23.5983, -46.6659),
