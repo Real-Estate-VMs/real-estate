@@ -27,15 +27,7 @@
           - git
         state: present
 
-    - name: Clone repository
-      git:
-        repo: "{{ repo_url }}"
-        dest: "{{ repo_path }}"
-        version: main
-        force: false
-      become_user: devops
-
-    - name: Pull latest changes
+    - name: Clone or pull repository
       git:
         repo: "{{ repo_url }}"
         dest: "{{ repo_path }}"
