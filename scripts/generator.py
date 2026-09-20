@@ -17,52 +17,66 @@ BATCH_SIZE_MIN   = int(os.getenv("BATCH_SIZE_MIN", 50))
 BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 200))
 
 SP_NEIGHBORHOODS = [
-    ("Moema",               -23.5983, -46.6659),
-    ("Pinheiros",           -23.5629, -46.6932),
-    ("Vila Madalena",       -23.5567, -46.6914),
-    ("Jardins",             -23.5726, -46.6553),
-    ("Itaim Bibi",          -23.5867, -46.6755),
-    ("Brooklin",            -23.6177, -46.6946),
-    ("Santo André",         -23.6639, -46.5383),
-    ("Tatuapé",             -23.5389, -46.5729),
-    ("Santana",             -23.5031, -46.6267),
-    ("Lapa",                -23.5221, -46.7065),
-    ("Vila Prudente",       -23.5875, -46.5697),
-    ("Perdizes",            -23.5352, -46.6611),
-    ("Morumbi",             -23.6203, -46.7195),
-    ("Campo Belo",          -23.6221, -46.6657),
-    ("Butantã",             -23.5712, -46.7310),
-    ("Aclimação",           -23.5680, -46.6320),
-    ("Bela Vista",          -23.5578, -46.6441),
-    ("Bom Retiro",          -23.5261, -46.6371),
-    ("Brás",                -23.5450, -46.6170),
-    ("Cambuci",             -23.5701, -46.6194),
-    ("Consolação",          -23.5510, -46.6580),
-    ("Higienópolis",        -23.5423, -46.6572),
-    ("Ipiranga",            -23.5908, -46.6053),
-    ("Liberdade",           -23.5583, -46.6352),
-    ("Mooca",               -23.5508, -46.6025),
-    ("Paraíso",             -23.5751, -46.6479),
-    ("Saúde",               -23.5966, -46.6324),
-    ("Vila Mariana",        -23.5876, -46.6380),
-    ("Água Funda",          -23.6214, -46.6108),
-    ("Alto de Pinheiros",   -23.5446, -46.7148),
-    ("Barra Funda",         -23.5266, -46.6650),
-    ("Casa Verde",          -23.5063, -46.6560),
-    ("Cidade Ademar",       -23.6639, -46.6611),
-    ("Cidade Dutra",        -23.7008, -46.6611),
-    ("Jabaquara",           -23.6448, -46.6422),
-    ("Penha",               -23.5264, -46.5431),
-    ("Pirituba",            -23.4869, -46.7197),
-    ("Sapopemba",           -23.6058, -46.5197),
-    ("Vila Andrade",        -23.6418, -46.7248),
-    ("Vila Guilherme",      -23.5086, -46.5986),
-    ("Vila Leopoldina",     -23.5261, -46.7381),
-    ("Vila Sônia",          -23.5942, -46.7402),
-    ("Sacomã",              -23.6097, -46.5928),
-    ("Cursino",             -23.6117, -46.6197),
-    ("Mandaqui",            -23.4878, -46.6378),
+    ("Moema",               -23.5983, -46.6659, "noble"),
+    ("Pinheiros",           -23.5629, -46.6932, "noble"),
+    ("Vila Madalena",       -23.5567, -46.6914, "noble"),
+    ("Jardins",             -23.5726, -46.6553, "noble"),
+    ("Itaim Bibi",          -23.5867, -46.6755, "noble"),
+    ("Perdizes",            -23.5352, -46.6611, "noble"),
+    ("Morumbi",             -23.6203, -46.7195, "noble"),
+    ("Campo Belo",          -23.6221, -46.6657, "noble"),
+    ("Alto de Pinheiros",   -23.5446, -46.7148, "noble"),
+    ("Higienópolis",        -23.5423, -46.6572, "noble"),
+    ("Consolação",          -23.5510, -46.6580, "noble"),
+    ("Paraíso",             -23.5751, -46.6479, "noble"),
+    ("Vila Mariana",        -23.5876, -46.6380, "noble"),
+    ("Bela Vista",          -23.5578, -46.6441, "noble"),
+    ("Brooklin",            -23.6177, -46.6946, "mid"),
+    ("Tatuapé",             -23.5389, -46.5729, "mid"),
+    ("Santana",             -23.5031, -46.6267, "mid"),
+    ("Lapa",                -23.5221, -46.7065, "mid"),
+    ("Aclimação",           -23.5680, -46.6320, "mid"),
+    ("Liberdade",           -23.5583, -46.6352, "mid"),
+    ("Mooca",               -23.5508, -46.6025, "mid"),
+    ("Saúde",               -23.5966, -46.6324, "mid"),
+    ("Butantã",             -23.5712, -46.7310, "mid"),
+    ("Bom Retiro",          -23.5261, -46.6371, "mid"),
+    ("Ipiranga",            -23.5908, -46.6053, "mid"),
+    ("Barra Funda",         -23.5266, -46.6650, "mid"),
+    ("Casa Verde",          -23.5063, -46.6560, "mid"),
+    ("Jabaquara",           -23.6448, -46.6422, "mid"),
+    ("Penha",               -23.5264, -46.5431, "mid"),
+    ("Vila Guilherme",      -23.5086, -46.5986, "mid"),
+    ("Vila Leopoldina",     -23.5261, -46.7381, "mid"),
+    ("Cursino",             -23.6117, -46.6197, "mid"),
+    ("Mandaqui",            -23.4878, -46.6378, "mid"),
+    ("Brás",                -23.5450, -46.6170, "mid"),
+    ("Cambuci",             -23.5701, -46.6194, "mid"),
+    ("Água Funda",          -23.6214, -46.6108, "mid"),
+    ("Santo André",         -23.6639, -46.5383, "peripheral"),
+    ("Vila Prudente",       -23.5875, -46.5697, "peripheral"),
+    ("Pirituba",            -23.4869, -46.7197, "peripheral"),
+    ("Sapopemba",           -23.6058, -46.5197, "peripheral"),
+    ("Vila Andrade",        -23.6418, -46.7248, "peripheral"),
+    ("Vila Sônia",          -23.5942, -46.7402, "peripheral"),
+    ("Sacomã",              -23.6097, -46.5928, "peripheral"),
+    ("Cidade Ademar",       -23.6639, -46.6611, "peripheral"),
+    ("Cidade Dutra",        -23.7008, -46.6611, "peripheral"),
 ]
+
+PRICE_PER_M2 = {
+    "noble":      (12_000, 25_000),
+    "mid":        (6_000,  12_000),
+    "peripheral": (3_000,   6_000),
+}
+
+AREA_RANGE = {
+    "studio":     (20,  55),
+    "apartment":  (45, 200),
+    "house":      (80, 350),
+    "penthouse":  (120, 350),
+    "commercial": (25, 400),
+}
 
 PROPERTY_TYPES = ["apartment", "house", "studio", "commercial", "penthouse"]
 
@@ -105,9 +119,9 @@ BUYER_NOTES = [
 STATE_VARIATIONS = ["SP", "Sp", "sp", "São Paulo", "Sao Paulo", "S.Paulo"]
 
 DIRTY_VALUES = {
-    "bedrooms": [-1, -2, 99],
-    "price":    [-500, -1000, 0],
-    "area_m2":  [-10, -5, 0],
+    "bedrooms": [-1, -2, 99, None],
+    "price":    [-500, -1000, 0, None],
+    "area_m2":  [-10, -5, 0, None],
 }
 
 
@@ -126,31 +140,30 @@ def random_sale_date():
 
 
 def generate_record():
-    neighborhood, lat_base, lon_base = random.choice(SP_NEIGHBORHOODS)
+    neighborhood, lat_base, lon_base, zone = random.choice(SP_NEIGHBORHOODS)
     lat, lon = random_coords(lat_base, lon_base)
     prop_type = random.choice(PROPERTY_TYPES)
     seller = random.choice(SELLERS)
 
-    area = round(random.uniform(35, 280), 1)
+    area_min, area_max = AREA_RANGE[prop_type]
+    area = round(random.uniform(area_min, area_max), 1)
+
+    price_min, price_max = PRICE_PER_M2[zone]
+    price = round(area * random.uniform(price_min, price_max), 2)
 
     if prop_type == "studio":
         bedrooms, bathrooms = 0, 1
-        price = round(random.uniform(200_000, 500_000), 2)
     elif prop_type == "apartment":
         bedrooms = random.randint(1, 4)
         bathrooms = random.randint(1, bedrooms + 1)
-        price = round(random.uniform(350_000, 2_500_000), 2)
     elif prop_type == "house":
         bedrooms = random.randint(2, 5)
         bathrooms = random.randint(1, bedrooms)
-        price = round(random.uniform(600_000, 5_000_000), 2)
     elif prop_type == "penthouse":
         bedrooms = random.randint(3, 5)
         bathrooms = random.randint(2, 4)
-        price = round(random.uniform(1_500_000, 8_000_000), 2)
     else:  # commercial
         bedrooms, bathrooms = 0, 1
-        price = round(random.uniform(400_000, 3_000_000), 2)
 
     # inject dirty data ~10% of the time
     if random.random() < 0.10:
