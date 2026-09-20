@@ -4,7 +4,7 @@ import random
 import subprocess
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
 from dotenv import load_dotenv
 
@@ -14,7 +14,7 @@ OUTPUT_DIR       = os.getenv("OUTPUT_DIR", "/home/devops/data/raw")
 REPO_PATH        = os.getenv("REPO_PATH", "/home/devops/repo")
 INTERVAL_SECONDS = int(os.getenv("INTERVAL_SECONDS", 1800))
 BATCH_SIZE_MIN   = int(os.getenv("BATCH_SIZE_MIN", 50))
-BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 200))
+BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 500))
 
 SP_NEIGHBORHOODS = [
     ("Moema",               -23.5983, -46.6659),
@@ -66,6 +66,29 @@ SP_NEIGHBORHOODS = [
 
 PROPERTY_TYPES = ["apartment", "house", "studio", "commercial", "penthouse"]
 
+SELLERS = [
+    {"id": "S-001", "name": "Carlos Mendes"},
+    {"id": "S-002", "name": "Ana Paula Lima"},
+    {"id": "S-003", "name": "Roberto Souza"},
+    {"id": "S-004", "name": "Fernanda Costa"},
+    {"id": "S-005", "name": "Marcelo Ferreira"},
+    {"id": "S-006", "name": "Juliana Martins"},
+    {"id": "S-007", "name": "Diego Alves"},
+    {"id": "S-008", "name": "Patrícia Nunes"},
+    {"id": "S-009", "name": "Rafael Cardoso"},
+    {"id": "S-010", "name": "Camila Rodrigues"},
+    {"id": "S-011", "name": "Bruno Oliveira"},
+    {"id": "S-012", "name": "Larissa Santos"},
+    {"id": "S-013", "name": "Gustavo Pereira"},
+    {"id": "S-014", "name": "Vanessa Teixeira"},
+    {"id": "S-015", "name": "Thiago Barbosa"},
+    {"id": "S-016", "name": "Aline Gomes"},
+    {"id": "S-017", "name": "Felipe Nascimento"},
+    {"id": "S-018", "name": "Renata Freitas"},
+    {"id": "S-019", "name": "Eduardo Cunha"},
+    {"id": "S-020", "name": "Isabela Moreira"},
+]
+
 BUYER_NOTES = [
     "Interested in the view, wants to negotiate price.",
     "Looking for a property near public transport.",
@@ -77,9 +100,15 @@ BUYER_NOTES = [
     "Very interested, likely to make an offer.",
     "Needs parking for two cars.",
     "Prefers newly renovated units only.",
-    None,
-    None,
 ]
+
+STATE_VARIATIONS = ["SP", "Sp", "sp", "São Paulo", "Sao Paulo", "S.Paulo"]
+
+DIRTY_VALUES = {
+    "bedrooms": [-1, -2, 99],
+    "price":    [-500, -1000, 0],
+    "area_m2":  [-10, -5, 0],
+}
 
 
 def random_coords(lat_base, lon_base):
@@ -89,10 +118,18 @@ def random_coords(lat_base, lon_base):
     )
 
 
+def random_sale_date():
+    year  = random.randint(2023, 2026)
+    month = random.randint(1, 12)
+    day   = random.randint(1, 28)
+    return date(year, month, day).isoformat()
+
+
 def generate_record():
     neighborhood, lat_base, lon_base = random.choice(SP_NEIGHBORHOODS)
     lat, lon = random_coords(lat_base, lon_base)
     prop_type = random.choice(PROPERTY_TYPES)
+    seller = random.choice(SELLERS)
 
     area = round(random.uniform(35, 280), 1)
 
@@ -115,35 +152,47 @@ def generate_record():
         bedrooms, bathrooms = 0, 1
         price = round(random.uniform(400_000, 3_000_000), 2)
 
-    parking = random.randint(0, 3)
+    # inject dirty data ~10% of the time
+    if random.random() < 0.10:
+        field = random.choice(list(DIRTY_VALUES.keys()))
+        if field == "bedrooms":
+            bedrooms = random.choice(DIRTY_VALUES["bedrooms"])
+        elif field == "price":
+            price = random.choice(DIRTY_VALUES["price"])
+        elif field == "area_m2":
+            area = random.choice(DIRTY_VALUES["area_m2"])
+
+    parking   = random.randint(0, 3)
     condo_fee = round(random.uniform(300, 2500), 2) if prop_type != "house" else 0.0
     year_built = random.randint(1975, 2024)
-    furnished = random.choice([True, False])
+    furnished  = random.choice([True, False])
 
-    seller_id = f"S-{uuid.uuid4().hex[:8].upper()}"
-    buyer_id = f"B-{uuid.uuid4().hex[:8].upper()}" if random.random() > 0.3 else None
-    buyer_note = random.choice(BUYER_NOTES) if buyer_id else None
+    has_buyer  = random.random() > 0.3
+    buyer_id   = f"B-{uuid.uuid4().hex[:8].upper()}" if has_buyer else ""
+    buyer_notes = random.choice(BUYER_NOTES) if has_buyer else ""
+    sale_date  = random_sale_date() if has_buyer else ""
 
     return {
-        "record_id":        str(uuid.uuid4()),
-        "timestamp":        datetime.utcnow().isoformat(),
-        "seller_id":        seller_id,
-        "buyer_id":         buyer_id or "",
-        "property_type":    prop_type,
-        "neighborhood":     neighborhood,
-        "city":             "São Paulo",
-        "state":            "SP",
-        "latitude":         lat,
-        "longitude":        lon,
-        "area_m2":          area,
-        "bedrooms":         bedrooms,
-        "bathrooms":        bathrooms,
-        "parking_spots":    parking,
-        "year_built":       year_built,
-        "furnished":        furnished,
-        "condo_fee_brl":    condo_fee,
-        "price_brl":        price,
-        "buyer_notes":      buyer_note or "",
+        "record_id":     str(uuid.uuid4()),
+        "seller_id":     seller["id"],
+        "seller_name":   seller["name"],
+        "buyer_id":      buyer_id,
+        "property_type": prop_type,
+        "neighborhood":  neighborhood,
+        "city":          "São Paulo",
+        "state":         random.choice(STATE_VARIATIONS),
+        "latitude":      lat,
+        "longitude":     lon,
+        "area_m2":       area,
+        "bedrooms":      bedrooms,
+        "bathrooms":     bathrooms,
+        "parking_spots": parking,
+        "year_built":    year_built,
+        "furnished":     furnished,
+        "condo_fee":     condo_fee,
+        "price":         price,
+        "sale_date":     sale_date,
+        "buyer_notes":   buyer_notes,
     }
 
 
@@ -168,11 +217,11 @@ def run():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     batch_size = random.randint(BATCH_SIZE_MIN, BATCH_SIZE_MAX)
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    filename = f"listings_{timestamp}.csv"
-    filepath = os.path.join(OUTPUT_DIR, filename)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename  = f"listings_{timestamp}.csv"
+    filepath  = os.path.join(OUTPUT_DIR, filename)
 
-    records = [generate_record() for _ in range(batch_size)]
+    records   = [generate_record() for _ in range(batch_size)]
     fieldnames = list(records[0].keys())
 
     with open(filepath, "w", newline="", encoding="utf-8") as f:
@@ -180,12 +229,12 @@ def run():
         writer.writeheader()
         writer.writerows(records)
 
-    print(f"[{datetime.utcnow().isoformat()}] Generated {batch_size} records → {filename}")
+    print(f"[{datetime.now().isoformat()}] Generated {batch_size} records → {filename}")
 
     if push_to_github(filepath):
-        print(f"[{datetime.utcnow().isoformat()}] Pushed {filename} to GitHub")
+        print(f"[{datetime.now().isoformat()}] Pushed {filename} to GitHub")
     else:
-        print(f"[{datetime.utcnow().isoformat()}] Push failed — file kept locally at {filepath}")
+        print(f"[{datetime.now().isoformat()}] Push failed — file kept locally at {filepath}")
 
 
 if __name__ == "__main__":

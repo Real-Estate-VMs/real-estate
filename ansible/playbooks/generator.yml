@@ -35,6 +35,14 @@
         force: false
       become_user: devops
 
+    - name: Pull latest changes
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_path }}"
+        version: main
+        update: true
+      become_user: devops
+
     - name: Configure git identity
       shell: |
         git config --global user.name "generator-vm"
@@ -69,3 +77,8 @@
         enabled: true
         state: started
         daemon_reload: true
+
+    - name: Restart generator service to pick up latest code
+      systemd:
+        name: generator
+        state: restarted
