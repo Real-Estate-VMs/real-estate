@@ -1,4 +1,4 @@
-name: Raw Data Ingestion
+name: Real Estate Pipeline
 
 on:
   push:
