@@ -83,11 +83,11 @@ dados_limpos |>
   print()
 
 # ── Exportação ───────────────────────────────────────────────────────────────
-output_dir <- file.path(repo_path, "data", "processed")
+output_dir <- file.path(dirname(dirname(input_file)), "processed")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 basename_input <- tools::file_path_sans_ext(basename(input_file))
-output_file <- file.path(output_dir, paste0(basename_input, "_clean.parquet"))
+output_file    <- file.path(output_dir, paste0(basename_input, "_clean.parquet"))
 
 write_parquet(dados_limpos, output_file)
 cat("\n==> Exportado:", output_file, "\n")

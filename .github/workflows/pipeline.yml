@@ -7,7 +7,7 @@ on:
 
 jobs:
   process:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
@@ -18,19 +18,27 @@ jobs:
       - name: Check for added CSV files
         id: check
         run: |
-          added=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'data/raw/*.csv')
+          added=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'data/raw/*.csv' | head -1)
           if [ -z "$added" ]; then
             echo "No CSV files added — skipping pipeline."
             echo "skip=true" >> $GITHUB_OUTPUT
           else
-            echo "Added files: $added"
+            echo "CSV encontrado: $added"
+            echo "file=$added" >> $GITHUB_OUTPUT
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Trigger processing on R VM
+      - name: Process CSV with R
         if: steps.check.outputs.skip == 'false'
-        # TODO: SSH into processing VM and run the R script
-        # Requires PROCESSING_VM_IP secret when VM is deployed
         run: |
-          echo "New CSV detected in data/raw/"
-          echo "Pending: configure SSH access to processing VM"
+          Rscript scripts/processing.R "${{ github.workspace }}/${{ steps.check.outputs.file }}"
+
+      - name: Commit and push parquet
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          base=$(basename "${{ steps.check.outputs.file }}" .csv)
+          git config user.name "processing-vm"
+          git config user.email "processing@real-estate"
+          git add "data/processed/${base}_clean.parquet"
+          git commit -m "processed: add ${base}_clean.parquet"
+          git push
