@@ -79,10 +79,10 @@
         group: grafana
       notify: restart grafana
 
-    - name: Download Node Exporter Full dashboard
-      get_url:
-        url: https://grafana.com/api/dashboards/1860/revisions/latest/download
-        dest: /var/lib/grafana/dashboards/node-exporter-full.json
+    - name: Deploy DevOps Metrics dashboard
+      copy:
+        src: ../templates/dashboard-devops.json
+        dest: /var/lib/grafana/dashboards/devops-metrics.json
         owner: grafana
         group: grafana
         mode: "0644"

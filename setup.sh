@@ -62,7 +62,7 @@ run_playbook() {
 }
 
 run_playbook "generator"  ansible/playbooks/generator.yml
-run_playbook "processing" ansible/playbooks/processing.yml
+# run_playbook "processing" ansible/playbooks/processing.yml
 run_playbook "bigdata"    ansible/playbooks/bigdata.yml
 run_playbook "monitoring" ansible/playbooks/monitoring.yml
 
