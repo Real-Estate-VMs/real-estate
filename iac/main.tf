@@ -13,6 +13,13 @@ provider "libvirt" {
 
 locals {
   vms = ["generator", "processing", "bigdata", "monitoring"]
+
+  vm_config = {
+    generator  = { memory = 1024, vcpu = 1 }
+    processing = { memory = 2048, vcpu = 2 }
+    bigdata    = { memory = 1024, vcpu = 1 }
+    monitoring = { memory = 2048, vcpu = 2 }
+  }
 }
 
 resource "libvirt_volume" "ubuntu_base" {
@@ -48,8 +55,8 @@ resource "libvirt_domain" "vm" {
   count = length(local.vms)
 
   name   = local.vms[count.index]
-  memory = 1024
-  vcpu   = 1
+  memory = local.vm_config[local.vms[count.index]].memory
+  vcpu   = local.vm_config[local.vms[count.index]].vcpu
 
   cloudinit = libvirt_cloudinit_disk.init[count.index].id
 
