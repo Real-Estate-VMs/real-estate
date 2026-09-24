@@ -44,6 +44,50 @@
         mode: "0644"
       notify: restart prometheus
 
+    - name: Deploy Grafana configuration
+      template:
+        src: ../templates/grafana.ini.j2
+        dest: /etc/grafana/grafana.ini
+        mode: "0640"
+        owner: root
+        group: grafana
+      notify: restart grafana
+
+    - name: Deploy Prometheus datasource
+      template:
+        src: ../templates/prometheus-datasource.yml.j2
+        dest: /etc/grafana/provisioning/datasources/prometheus.yml
+        mode: "0640"
+        owner: root
+        group: grafana
+      notify: restart grafana
+
+    - name: Create dashboards directory
+      file:
+        path: /var/lib/grafana/dashboards
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: "0755"
+
+    - name: Deploy dashboard provisioning config
+      template:
+        src: ../templates/grafana-dashboards.yml.j2
+        dest: /etc/grafana/provisioning/dashboards/dashboards.yml
+        mode: "0640"
+        owner: root
+        group: grafana
+      notify: restart grafana
+
+    - name: Download Node Exporter Full dashboard
+      get_url:
+        url: https://grafana.com/api/dashboards/1860/revisions/latest/download
+        dest: /var/lib/grafana/dashboards/node-exporter-full.json
+        owner: grafana
+        group: grafana
+        mode: "0644"
+      notify: restart grafana
+
     - name: Enable and start Grafana
       systemd:
         name: grafana-server
@@ -67,4 +111,9 @@
     - name: restart prometheus
       systemd:
         name: prometheus
+        state: restarted
+
+    - name: restart grafana
+      systemd:
+        name: grafana-server
         state: restarted

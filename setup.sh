@@ -19,7 +19,10 @@ tofu apply -auto-approve 2>&1 | grep -E "(name\s+=|Apply complete|Error)"
 cd ..
 
 echo "==> Waiting for VMs to get IP addresses..."
-until sudo virsh net-dhcp-leases default | grep -q "generator"; do
+until sudo virsh net-dhcp-leases default | grep -q "generator" && \
+      sudo virsh net-dhcp-leases default | grep -q "processing" && \
+      sudo virsh net-dhcp-leases default | grep -q "bigdata" && \
+      sudo virsh net-dhcp-leases default | grep -q "monitoring"; do
   echo "    still waiting..."
   sleep 10
 done
@@ -40,7 +43,7 @@ run_playbook() {
   local log
   log=$(mktemp)
   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory.ini "$playbook" \
-    --extra-vars "github_token=$GITHUB_TOKEN" > "$log" 2>&1 &
+    --extra-vars "github_token=$GITHUB_TOKEN grafana_user=${GRAFANA_USER:-devops} grafana_password=${GRAFANA_PASSWORD:-admin}" > "$log" 2>&1 &
   local pid=$!
   while kill -0 $pid 2>/dev/null; do
     printf "."
