@@ -29,6 +29,7 @@ resource "libvirt_volume" "vm_disk" {
   pool           = "default"
   base_volume_id = libvirt_volume.ubuntu_base.id
   format         = "qcow2"
+  size           = 10737418240
 }
 
 resource "libvirt_cloudinit_disk" "init" {

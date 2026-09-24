@@ -1,0 +1,70 @@
+---
+- name: Configure monitoring VM
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Force apt to use IPv4
+      copy:
+        content: 'Acquire::ForceIPv4 "true";'
+        dest: /etc/apt/apt.conf.d/99force-ipv4
+
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Grafana GPG key
+      shell: |
+        wget -q -O /usr/share/keyrings/grafana.key https://apt.grafana.com/gpg.key
+      args:
+        creates: /usr/share/keyrings/grafana.key
+
+    - name: Add Grafana repository
+      copy:
+        content: "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main\n"
+        dest: /etc/apt/sources.list.d/grafana.list
+
+    - name: Update apt cache after adding Grafana repo
+      apt:
+        update_cache: true
+
+    - name: Install Grafana, Prometheus and Node Exporter
+      apt:
+        name:
+          - grafana
+          - prometheus
+          - prometheus-node-exporter
+        state: present
+
+    - name: Deploy Prometheus configuration
+      template:
+        src: ../templates/prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+        mode: "0644"
+      notify: restart prometheus
+
+    - name: Enable and start Grafana
+      systemd:
+        name: grafana-server
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Enable and start Prometheus
+      systemd:
+        name: prometheus
+        enabled: true
+        state: started
+
+    - name: Enable and start Node Exporter
+      systemd:
+        name: prometheus-node-exporter
+        enabled: true
+        state: started
+
+  handlers:
+    - name: restart prometheus
+      systemd:
+        name: prometheus
+        state: restarted

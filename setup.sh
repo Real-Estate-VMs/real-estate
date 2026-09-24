@@ -33,24 +33,34 @@ pkill ssh-agent 2>/dev/null || true
 eval "$(ssh-agent -s)" > /dev/null
 ssh-add ~/.ssh/devops_lab
 
-echo "==> Configuring VMs..."
-ANSIBLE_LOG=$(mktemp)
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory.ini ansible/playbooks/generator.yml \
-  --extra-vars "github_token=$GITHUB_TOKEN" > "$ANSIBLE_LOG" 2>&1 &
-ANSIBLE_PID=$!
-while kill -0 $ANSIBLE_PID 2>/dev/null; do
-  printf "."
-  sleep 2
-done
-wait $ANSIBLE_PID
-ANSIBLE_STATUS=$?
-echo ""
-if [ $ANSIBLE_STATUS -ne 0 ]; then
-  cat "$ANSIBLE_LOG"
-  rm -f "$ANSIBLE_LOG"
-  exit 1
-fi
-grep -E "(PLAY \[|ok=)" "$ANSIBLE_LOG"
-rm -f "$ANSIBLE_LOG"
+run_playbook() {
+  local name=$1
+  local playbook=$2
+  echo "==> Configuring $name..."
+  local log
+  log=$(mktemp)
+  ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory.ini "$playbook" \
+    --extra-vars "github_token=$GITHUB_TOKEN" > "$log" 2>&1 &
+  local pid=$!
+  while kill -0 $pid 2>/dev/null; do
+    printf "."
+    sleep 2
+  done
+  local status=0
+  wait $pid || status=$?
+  echo ""
+  if [ $status -ne 0 ] || grep -qE "(unreachable=[1-9]|failed=[1-9])" "$log"; then
+    cat "$log"
+    rm -f "$log"
+    exit 1
+  fi
+  grep -E "(PLAY \[|ok=)" "$log"
+  rm -f "$log"
+}
+
+run_playbook "generator"  ansible/playbooks/generator.yml
+run_playbook "processing" ansible/playbooks/processing.yml
+run_playbook "bigdata"    ansible/playbooks/bigdata.yml
+run_playbook "monitoring" ansible/playbooks/monitoring.yml
 
 echo "==> Done. Infrastructure is up and running."

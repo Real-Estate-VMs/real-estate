@@ -1,0 +1,26 @@
+---
+- name: Configure bigdata VM
+  hosts: bigdata
+  become: true
+
+  tasks:
+    - name: Force apt to use IPv4
+      copy:
+        content: 'Acquire::ForceIPv4 "true";'
+        dest: /etc/apt/apt.conf.d/99force-ipv4
+
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Node Exporter
+      apt:
+        name: prometheus-node-exporter
+        state: present
+
+    - name: Enable and start Node Exporter
+      systemd:
+        name: prometheus-node-exporter
+        enabled: true
+        state: started

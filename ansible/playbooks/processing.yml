@@ -1,6 +1,6 @@
 ---
-- name: Configure generator VM
-  hosts: generator
+- name: Configure processing VM
+  hosts: processing
   become: true
 
   vars:
@@ -19,13 +19,22 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Install dependencies
+    - name: Install R and dependencies
       apt:
         name:
-          - python3
-          - python3-dotenv
+          - r-base
+          - r-base-dev
           - git
+          - libcurl4-openssl-dev
+          - libssl-dev
+          - libxml2-dev
         state: present
+
+    - name: Install R packages
+      command: >
+        Rscript -e "install.packages(c('arrow', 'dplyr', 'readr', 'stringr'), repos='https://cloud.r-project.org')"
+      args:
+        creates: /usr/local/lib/R/site-library/arrow
 
     - name: Clone or pull repository
       git:
@@ -37,43 +46,17 @@
 
     - name: Configure git identity
       shell: |
-        git config --global user.name "generator-vm"
-        git config --global user.email "generator@real-estate"
+        git config --global user.name "processing-vm"
+        git config --global user.email "processing@real-estate"
       become_user: devops
 
-    - name: Create data/raw directory
+    - name: Create data/processed directory
       file:
-        path: "{{ devops_home }}/data/raw"
+        path: "{{ devops_home }}/data/processed"
         state: directory
         owner: devops
         group: devops
         mode: "0755"
-
-    - name: Deploy .env file
-      template:
-        src: ../templates/generator.env.j2
-        dest: "{{ repo_path }}/.env"
-        owner: devops
-        group: devops
-        mode: "0600"
-
-    - name: Deploy systemd service
-      template:
-        src: ../templates/generator.service.j2
-        dest: /etc/systemd/system/generator.service
-        mode: "0644"
-
-    - name: Enable and start generator service
-      systemd:
-        name: generator
-        enabled: true
-        state: started
-        daemon_reload: true
-
-    - name: Restart generator service to pick up latest code
-      systemd:
-        name: generator
-        state: restarted
 
     - name: Install Node Exporter
       apt:

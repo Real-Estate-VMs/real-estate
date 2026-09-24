@@ -246,6 +246,7 @@ def run():
 
     if push_to_github(filepath):
         print(f"[{datetime.now().isoformat()}] Pushed {filename} to GitHub")
+        os.remove(filepath)
     else:
         print(f"[{datetime.now().isoformat()}] Push failed — file kept locally at {filepath}")
 
