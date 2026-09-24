@@ -61,9 +61,11 @@ run_playbook() {
   rm -f "$log"
 }
 
-run_playbook "generator"  ansible/playbooks/generator.yml
-run_playbook "processing" ansible/playbooks/processing.yml
-run_playbook "bigdata"    ansible/playbooks/bigdata.yml
 run_playbook "monitoring" ansible/playbooks/monitoring.yml
+run_playbook "processing" ansible/playbooks/processing.yml
+# run_playbook "bigdata"    ansible/playbooks/bigdata.yml
+run_playbook "generator"  ansible/playbooks/generator.yml
 
+MONITORING_IP=$(grep -A1 '\[monitoring\]' ansible/inventory.ini | tail -1 | awk '{print $1}')
 echo "==> Done. Infrastructure is up and running."
+echo "    Grafana: http://${MONITORING_IP}:3000"
