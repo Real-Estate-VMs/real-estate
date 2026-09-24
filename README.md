@@ -10,7 +10,7 @@ Infraestrutura provisionada via OpenTofu + KVM, configurada via Ansible.
 | generator  | Gera dados imobiliários simulados | Python       |
 | processing | Limpa e trata os dados            | R            |
 | bigdata    | Data Warehouse / Data Lake        | Python       |
-| monitoring | Monitoramento do ambiente         | Docker + k3s |
+| monitoring | Monitoramento do ambiente         | Grafana + Prometheus |
 
 ## Estrutura do repositório
 
@@ -50,8 +50,11 @@ real-estate/
 
 ```bash
 cp .env.example .env
+# Preencha GITHUB_TOKEN no .env
 bash setup.sh
 ```
+
+Ao final, acesse o Grafana em `http://<IP da VM monitoring>:3000` com as credenciais definidas em `GRAFANA_USER` e `GRAFANA_PASSWORD`.
 
 ## Ver IPs das VMs
 
