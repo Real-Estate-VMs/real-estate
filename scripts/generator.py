@@ -13,6 +13,7 @@ load_dotenv()
 OUTPUT_DIR       = os.getenv("OUTPUT_DIR", "/home/devops/data/raw")
 REPO_PATH        = os.getenv("REPO_PATH", "/home/devops/repo")
 INTERVAL_SECONDS = int(os.getenv("INTERVAL_SECONDS", 1800))
+STARTUP_DELAY    = int(os.getenv("STARTUP_DELAY", 300))
 BATCH_SIZE_MIN   = int(os.getenv("BATCH_SIZE_MIN", 50))
 BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 200))
 
@@ -252,7 +253,8 @@ def run():
 
 
 if __name__ == "__main__":
-    print(f"Generator started. Interval: {INTERVAL_SECONDS}s")
+    print(f"Generator started. First run in {STARTUP_DELAY}s, then every {INTERVAL_SECONDS}s.")
+    time.sleep(STARTUP_DELAY)
     while True:
         run()
         time.sleep(INTERVAL_SECONDS)
