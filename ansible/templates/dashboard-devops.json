@@ -176,7 +176,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": { "h": 4, "w": 3, "x": 18, "y": 1 },
       "id": 4,
       "options": {
         "colorMode": "background",
@@ -186,12 +186,50 @@
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "textMode": "auto"
       },
-      "title": "Disco em Uso",
+      "title": "Disco em Uso (%)",
       "type": "stat",
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
           "expr": "100 - ((node_filesystem_avail_bytes{job=~\"$job\", mountpoint=\"/\", fstype!=\"rootfs\"} / node_filesystem_size_bytes{job=~\"$job\", mountpoint=\"/\", fstype!=\"rootfs\"}) * 100)",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "description": "Espaço em disco utilizado e disponível no volume principal (/).",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 3, "x": 21, "y": 1 },
+      "id": 40,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Disco Usado (GB)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "node_filesystem_size_bytes{job=~\"$job\", mountpoint=\"/\", fstype!=\"rootfs\"} - node_filesystem_avail_bytes{job=~\"$job\", mountpoint=\"/\", fstype!=\"rootfs\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
