@@ -34,7 +34,12 @@
       command: >
         Rscript -e "install.packages(c('arrow', 'dplyr', 'readr', 'stringr'), repos='https://cloud.r-project.org')"
       args:
-        creates: /usr/local/lib/R/site-library/arrow
+        creates: /etc/r-packages-installed
+
+    - name: Mark R packages as installed
+      file:
+        path: /etc/r-packages-installed
+        state: touch
 
     - name: Clone or pull repository
       git:
