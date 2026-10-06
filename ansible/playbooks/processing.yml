@@ -107,6 +107,12 @@
         status_code: 201
       register: runner_reg
 
+    - name: Remove existing Actions runner config
+      shell: ./config.sh remove --token {{ runner_reg.json.token }} 2>/dev/null || true
+      args:
+        chdir: "{{ devops_home }}/actions-runner"
+      become_user: devops
+
     - name: Configure Actions runner
       shell: |
         ./config.sh \
@@ -114,7 +120,7 @@
           --token {{ runner_reg.json.token }} \
           --name processing-vm \
           --labels self-hosted \
-          --unattended --replace
+          --unattended
       args:
         chdir: "{{ devops_home }}/actions-runner"
       become_user: devops
