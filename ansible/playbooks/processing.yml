@@ -5,6 +5,7 @@
 
   vars:
     devops_home: /home/devops
+    runner_version: "2.338.2"
     repo_path: /home/devops/repo
     repo_url: "https://{{ github_token }}@github.com/Real-Estate-VMs/real-estate.git"
 
@@ -49,6 +50,25 @@
         update: true
       become_user: devops
 
+    # O GitHub redireciona a URL e o git descarta o token embutido nela, fazendo o
+    # push falhar com "could not read Username". Por isso a credencial fica no
+    # credential helper (vale para o host) e o remote usa uma URL limpa.
+    - name: Store GitHub credentials for git
+      shell: |
+        git config --global credential.helper store
+        umask 077
+        printf 'https://x-access-token:%s@github.com\n' '{{ github_token }}' > ~/.git-credentials
+      become_user: devops
+      changed_when: false
+      no_log: true
+
+    - name: Use clean git remote URL (no token)
+      command: git remote set-url origin https://github.com/Real-Estate-VMs/real-estate.git
+      args:
+        chdir: "{{ repo_path }}"
+      become_user: devops
+      changed_when: false
+
     - name: Configure git identity
       shell: |
         git config --global user.name "processing-vm"
@@ -84,18 +104,28 @@
 
     - name: Download Actions runner
       get_url:
-        url: https://github.com/actions/runner/releases/download/v2.317.0/actions-runner-linux-x64-2.317.0.tar.gz
-        dest: /tmp/actions-runner.tar.gz
+        url: "https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz"
+        dest: "/tmp/actions-runner-{{ runner_version }}.tar.gz"
         mode: "0644"
 
     - name: Extract Actions runner
       unarchive:
-        src: /tmp/actions-runner.tar.gz
+        src: "/tmp/actions-runner-{{ runner_version }}.tar.gz"
         dest: "{{ devops_home }}/actions-runner/"
         remote_src: true
         owner: devops
         group: devops
-        creates: "{{ devops_home }}/actions-runner/config.sh"
+        creates: "{{ devops_home }}/actions-runner/.extracted-{{ runner_version }}"
+      register: runner_extract
+
+    - name: Mark runner version as extracted
+      file:
+        path: "{{ devops_home }}/actions-runner/.extracted-{{ runner_version }}"
+        state: touch
+        owner: devops
+        group: devops
+        mode: "0644"
+      when: runner_extract is changed
 
     - name: Get runner registration token
       uri:
@@ -107,22 +137,18 @@
         status_code: 201
       register: runner_reg
 
-    - name: Remove existing Actions runner config
-      shell: ./config.sh remove --token {{ runner_reg.json.token }} 2>/dev/null || true
-      args:
-        chdir: "{{ devops_home }}/actions-runner"
-      become_user: devops
-
     - name: Configure Actions runner
       shell: |
         ./config.sh \
           --url https://github.com/Real-Estate-VMs/real-estate \
           --token {{ runner_reg.json.token }} \
           --name processing-vm \
+          --replace \
           --labels self-hosted \
           --unattended
       args:
         chdir: "{{ devops_home }}/actions-runner"
+        creates: "{{ devops_home }}/actions-runner/.runner"
       become_user: devops
 
     - name: Install Actions runner as service
