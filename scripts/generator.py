@@ -252,7 +252,30 @@ def run():
         print(f"[{datetime.now().isoformat()}] Push failed — file kept locally at {filepath}")
 
 
+def generate_history(total, path, seed):
+    """Carga histórica: gera `total` registros de uma vez num CSV (sem push)."""
+    random.seed(seed)
+    records = [generate_record() for _ in range(total)]
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(records[0].keys()))
+        writer.writeheader()
+        writer.writerows(records)
+    print(f"Historical load: {total} records → {path}")
+
+
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Gerador de imóveis sintéticos de São Paulo")
+    parser.add_argument("--historico", type=int, metavar="N",
+                        help="gera N registros de uma vez (carga histórica) e sai")
+    parser.add_argument("--saida", default="listings_historico.csv", help="arquivo CSV da carga histórica")
+    parser.add_argument("--seed", type=int, default=2026, help="semente para reproduzir a carga histórica")
+    args = parser.parse_args()
+    if args.historico:
+        generate_history(args.historico, args.saida, args.seed)
+        raise SystemExit(0)
+
     print(f"Generator started. First run in {STARTUP_DELAY}s, then every {INTERVAL_SECONDS}s.")
     time.sleep(STARTUP_DELAY)
     while True:
