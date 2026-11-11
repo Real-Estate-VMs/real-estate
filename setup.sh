@@ -43,7 +43,7 @@ run_playbook() {
   local log
   log=$(mktemp)
   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory.ini "$playbook" \
-    --extra-vars "github_token=$GITHUB_TOKEN grafana_user=${GRAFANA_USER:-devops} grafana_password=${GRAFANA_PASSWORD:-admin} dw_reader_password=${DW_READER_PASSWORD:-dw_leitura_lab}" > "$log" 2>&1 &
+    --extra-vars "github_token=$GITHUB_TOKEN grafana_user=${GRAFANA_USER:-devops} grafana_password=${GRAFANA_PASSWORD:-admin} dw_reader_password=${DW_READER_PASSWORD:-dw_leitura_lab} jupyter_token=${JUPYTER_TOKEN:-realestate-lab}" > "$log" 2>&1 &
   local pid=$!
   while kill -0 $pid 2>/dev/null; do
     printf "."

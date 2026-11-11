@@ -5,8 +5,10 @@
 
   vars:
     devops_home: /home/devops
-    repo_path: /home/devops/repo
+    repo_path: /home/devops/repo            # clone usado só pelo ETL (somente leitura)
+    workspace_path: /home/devops/workspace  # clone do Jupyter, onde o grupo pode editar
     venv_path: /home/devops/venv
+    requirements_dir: /home/devops/requirements
     pg_version: "16"
     dw_database: realestate
     # Rede das VMs (libvirt default): o Grafana na VM monitoring lê o DW por aqui
@@ -27,6 +29,7 @@
       apt:
         name:
           - postgresql
+          - openjdk-17-jre-headless
           - python3-venv
           - python3-psycopg2
           - git
@@ -92,12 +95,60 @@
         update: true
       become_user: devops
 
-    - name: Create Python virtualenv with ETL dependencies
+    - name: Clone workspace for Jupyter (only if missing, never overwrites edits)
+      git:
+        repo: https://github.com/Real-Estate-VMs/real-estate.git
+        dest: "{{ workspace_path }}"
+        version: main
+        update: false
+      become_user: devops
+
+    - name: Create requirements directory
+      file:
+        path: "{{ requirements_dir }}"
+        state: directory
+        owner: devops
+        group: devops
+        mode: "0755"
+
+    - name: Copy requirements files
+      copy:
+        src: "../../{{ item }}"
+        dest: "{{ requirements_dir }}/{{ item }}"
+        owner: devops
+        group: devops
+        mode: "0644"
+      loop:
+        - requirements-bigdata.txt
+        - requirements-notebook.txt
+
+    - name: Create Python virtualenv (ETL, notebook, Spark and Jupyter)
       pip:
-        requirements: "{{ repo_path }}/requirements-bigdata.txt"
+        requirements: "{{ requirements_dir }}/requirements-notebook.txt"
         virtualenv: "{{ venv_path }}"
         virtualenv_command: python3 -m venv
       become_user: devops
+
+    # Passo 2 das instruções do PDF da disciplina (integração Colab + Linux)
+    - name: Enable jupyter_http_over_ws extension
+      command: "{{ venv_path }}/bin/jupyter serverextension enable --py jupyter_http_over_ws"
+      become_user: devops
+      changed_when: false
+
+    - name: Deploy Jupyter service
+      template:
+        src: ../templates/jupyter.service.j2
+        dest: /etc/systemd/system/jupyter.service
+        mode: "0640"
+      no_log: true
+      notify: restart jupyter
+
+    - name: Enable and start Jupyter
+      systemd:
+        name: jupyter
+        enabled: true
+        state: started
+        daemon_reload: true
 
     # ── ETL agendado ──────────────────────────────────────────────────────────
     - name: Deploy ETL service and timer
@@ -125,6 +176,12 @@
         state: started
 
   handlers:
+    - name: restart jupyter
+      systemd:
+        name: jupyter
+        state: restarted
+        daemon_reload: true
+
     - name: restart postgresql
       systemd:
         name: postgresql

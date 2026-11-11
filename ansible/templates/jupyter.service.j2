@@ -1,0 +1,23 @@
+[Unit]
+Description=Jupyter Notebook (bigdata) for the Colab local runtime
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=devops
+WorkingDirectory={{ workspace_path }}
+Environment=DW_DSN=dbname={{ dw_database }}
+Environment=SPARK_DRIVER_MEMORY=1g
+Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# Só escuta em localhost: o acesso é feito por túnel SSH (ssh -L 8888:localhost:8888)
+ExecStart={{ venv_path }}/bin/jupyter notebook \
+  --ip=127.0.0.1 --port=8888 --no-browser \
+  --NotebookApp.allow_origin=https://colab.research.google.com \
+  --NotebookApp.port_retries=0 \
+  --NotebookApp.token={{ jupyter_token }} \
+  --notebook-dir={{ workspace_path }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
