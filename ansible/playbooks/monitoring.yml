@@ -62,6 +62,16 @@
         group: grafana
       notify: restart grafana
 
+    - name: Deploy Data Warehouse (PostgreSQL) datasource
+      template:
+        src: ../templates/postgres-datasource.yml.j2
+        dest: /etc/grafana/provisioning/datasources/postgres-dw.yml
+        mode: "0640"
+        owner: root
+        group: grafana
+      no_log: true
+      notify: restart grafana
+
     - name: Create dashboards directory
       file:
         path: /var/lib/grafana/dashboards
@@ -83,6 +93,15 @@
       copy:
         src: ../templates/dashboard-devops.json
         dest: /var/lib/grafana/dashboards/devops-metrics.json
+        owner: grafana
+        group: grafana
+        mode: "0644"
+      notify: restart grafana
+
+    - name: Deploy real estate market dashboard
+      copy:
+        src: ../templates/dashboard-mercado.json
+        dest: /var/lib/grafana/dashboards/mercado-imobiliario.json
         owner: grafana
         group: grafana
         mode: "0644"

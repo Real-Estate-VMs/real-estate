@@ -1,0 +1,1079 @@
+{
+  "uid": "mercado-imobiliario-sp",
+  "title": "Mercado Imobiliário SP (Data Warehouse)",
+  "tags": [
+    "bigdata",
+    "data-warehouse",
+    "olap"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "regiao",
+        "label": "Região",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dw-postgres"
+        },
+        "query": "SELECT DISTINCT regiao FROM dw.dim_localizacao ORDER BY 1",
+        "definition": "SELECT DISTINCT regiao FROM dw.dim_localizacao ORDER BY 1",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "type": "query",
+        "name": "tipo",
+        "label": "Tipo de imóvel",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dw-postgres"
+        },
+        "query": "SELECT DISTINCT tipo_pt FROM dw.dim_tipo_imovel ORDER BY 1",
+        "definition": "SELECT DISTINCT tipo_pt FROM dw.dim_tipo_imovel ORDER BY 1",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "type": "custom",
+        "name": "situacao",
+        "label": "Situação",
+        "query": "Vendido : true, Disponível : false",
+        "multi": true,
+        "includeAll": true,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "Vendido",
+            "value": "true"
+          },
+          {
+            "selected": false,
+            "text": "Disponível",
+            "value": "false"
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Visão geral",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Imóveis",
+      "description": "Imóveis carregados no Data Warehouse, respeitando os filtros.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS imoveis FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Vendidos",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) FILTER (WHERE vendido) AS vendidos FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Preço médio",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT avg(preco) AS preco FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Preço/m² médio",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT avg(preco_m2) AS preco_m2 FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Total vendido",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-green"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT sum(preco) FILTER (WHERE vendido) AS valor FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Última carga",
+      "description": "Quando o ETL da VM bigdata carregou o último parquet.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT extract(epoch FROM max(finalizado_em)) * 1000 AS ultima FROM dw.etl_carga WHERE status = 'concluída'"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Onde está o valor",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "geomap",
+      "title": "Mapa de São Paulo: preço por m²",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "description": "Cada ponto é um imóvel. A cor indica o preço por m² (verde = mais barato, vermelho = mais caro).",
+      "gridPos": {
+        "h": 14,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "decimals": 0,
+          "color": {
+            "mode": "continuous-GrYlRd"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": -23.585,
+          "lon": -46.655,
+          "zoom": 10.6,
+          "allLayers": true
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "basemap": {
+          "type": "default",
+          "name": "Mapa",
+          "config": {}
+        },
+        "tooltip": {
+          "mode": "details"
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Imóveis",
+            "tooltip": true,
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": {
+                  "fixed": 6,
+                  "min": 4,
+                  "max": 12
+                },
+                "color": {
+                  "field": "preco_m2",
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.75,
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/marker/circle.svg"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT latitude, longitude, preco_m2, bairro, tipo_pt AS tipo, preco FROM dw.vw_imoveis WHERE latitude IS NOT NULL AND regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "barchart",
+      "title": "Roll-up: preço médio por m² por região",
+      "description": "Agregação do nível bairro para o nível região (roll-up).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "regiao",
+        "orientation": "vertical",
+        "showValue": "auto",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT regiao, round(avg(preco_m2)) AS \"Preço por m²\" FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao) GROUP BY regiao ORDER BY 2 DESC"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Preço médio por m² por tipo de imóvel",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "tipo",
+        "orientation": "vertical",
+        "showValue": "auto",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT tipo_pt AS tipo, round(avg(preco_m2)) AS \"Preço por m²\" FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao) GROUP BY tipo_pt ORDER BY 2 DESC"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Bairros e tempo",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "barchart",
+      "title": "Drill-down: 10 bairros com maior preço por m²",
+      "description": "Detalhamento da região para o nível bairro (drill-down).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyBRL",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "bairro",
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT bairro, round(avg(preco_m2)) AS \"Preço por m²\" FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao) GROUP BY bairro ORDER BY 2 DESC LIMIT 10"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "barchart",
+      "title": "Vendas por trimestre",
+      "description": "Quantidade de imóveis vendidos por trimestre (hierarquia de tempo do DW).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "periodo",
+        "orientation": "vertical",
+        "showValue": "auto",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "xTickLabelRotation": -45
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT 'T' || trimestre || '/' || (ano % 100) AS periodo, count(*) AS \"Vendas\" FROM dw.vw_imoveis WHERE vendido AND regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao) GROUP BY ano, trimestre ORDER BY ano, trimestre"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Cubo OLAP e oportunidades",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Cubo: preço médio por m² (tipo × região)",
+      "description": "Pivot do cubo tipo × região, com a linha TOTAL gerada por ROLLUP.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nobre"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Intermediária"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Periférica"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Todas"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT COALESCE(tipo_pt, 'TOTAL') AS \"Tipo\", round(avg(preco_m2) FILTER (WHERE regiao = 'Nobre')) AS \"Nobre\", round(avg(preco_m2) FILTER (WHERE regiao = 'Intermediária')) AS \"Intermediária\", round(avg(preco_m2) FILTER (WHERE regiao = 'Periférica')) AS \"Periférica\", round(avg(preco_m2)) AS \"Todas\" FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao) GROUP BY ROLLUP (tipo_pt) ORDER BY GROUPING(tipo_pt), 1"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Oportunidades: preço por m² 20% abaixo da média do bairro",
+      "description": "Imóveis ainda não vendidos com preço por m² bem abaixo de imóveis do mesmo tipo e bairro.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Preço"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Preço/m²"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Média do bairro"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "prefix:R$ "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "WITH base AS (SELECT bairro, tipo_pt, area_m2, preco, preco_m2, vendido, avg(preco_m2) OVER (PARTITION BY bairro, tipo_pt) AS media_bairro FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)) SELECT bairro AS \"Bairro\", tipo_pt AS \"Tipo\", area_m2 AS \"Área (m²)\", preco AS \"Preço\", round(preco_m2) AS \"Preço/m²\", round(media_bairro) AS \"Média do bairro\", round(100 * (1 - preco_m2 / media_bairro)) AS \"Desconto (%)\" FROM base WHERE NOT vendido AND preco_m2 <= 0.8 * media_bairro ORDER BY 7 DESC LIMIT 20"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Evidência do ETL",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "panels": []
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Cargas do ETL (dw.etl_carga)",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT id AS \"Carga\", arquivo AS \"Arquivo\", finalizado_em AS \"Finalizada em\", linhas_lidas AS \"Lidas\", linhas_inseridas AS \"Inseridas\", linhas_ignoradas AS \"Ignoradas\", status AS \"Status\" FROM dw.etl_carga ORDER BY id DESC LIMIT 15"
+        }
+      ]
+    }
+  ]
+}

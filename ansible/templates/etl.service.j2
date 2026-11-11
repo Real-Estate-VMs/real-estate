@@ -1,0 +1,13 @@
+[Unit]
+Description=Real Estate ETL (parquet -> Data Warehouse)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=devops
+WorkingDirectory={{ repo_path }}
+Environment=REPO_PATH={{ repo_path }}
+Environment=DW_DSN=dbname={{ dw_database }}
+Environment=PYTHONUNBUFFERED=1
+ExecStart={{ venv_path }}/bin/python {{ repo_path }}/scripts/etl.py

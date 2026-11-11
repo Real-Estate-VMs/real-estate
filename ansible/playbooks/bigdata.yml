@@ -3,6 +3,15 @@
   hosts: bigdata
   become: true
 
+  vars:
+    devops_home: /home/devops
+    repo_path: /home/devops/repo
+    venv_path: /home/devops/venv
+    pg_version: "16"
+    dw_database: realestate
+    # Rede das VMs (libvirt default): o Grafana na VM monitoring lê o DW por aqui
+    dw_allowed_network: 192.168.122.0/24
+
   tasks:
     - name: Force apt to use IPv4
       copy:
@@ -14,9 +23,15 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Install Node Exporter
+    - name: Install PostgreSQL, Python and tools
       apt:
-        name: prometheus-node-exporter
+        name:
+          - postgresql
+          - python3-venv
+          - python3-psycopg2
+          - git
+          - acl
+          - prometheus-node-exporter
         state: present
 
     - name: Enable and start Node Exporter
@@ -24,3 +39,98 @@
         name: prometheus-node-exporter
         enabled: true
         state: started
+
+    # ── PostgreSQL (Data Warehouse) ───────────────────────────────────────────
+    - name: Listen on all interfaces
+      community.postgresql.postgresql_set:
+        name: listen_addresses
+        value: "*"
+      become_user: postgres
+      notify: restart postgresql
+
+    - name: Allow read-only access from the VM network
+      community.postgresql.postgresql_pg_hba:
+        dest: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+        contype: host
+        databases: "{{ dw_database }}"
+        users: dw_leitura
+        source: "{{ dw_allowed_network }}"
+        method: scram-sha-256
+      notify: reload postgresql
+
+    - name: Start PostgreSQL
+      systemd:
+        name: postgresql
+        enabled: true
+        state: started
+
+    - name: Create ETL role (peer auth for the devops OS user)
+      community.postgresql.postgresql_user:
+        name: devops
+      become_user: postgres
+
+    - name: Create read-only role for Grafana and the notebook
+      community.postgresql.postgresql_user:
+        name: dw_leitura
+        password: "{{ dw_reader_password }}"
+      become_user: postgres
+      no_log: true
+
+    - name: Create Data Warehouse database
+      community.postgresql.postgresql_db:
+        name: "{{ dw_database }}"
+        owner: devops
+      become_user: postgres
+
+    # ── Código e ambiente Python ──────────────────────────────────────────────
+    # O repositório é público e esta VM só lê: clone sem token.
+    - name: Clone or pull repository
+      git:
+        repo: https://github.com/Real-Estate-VMs/real-estate.git
+        dest: "{{ repo_path }}"
+        version: main
+        update: true
+      become_user: devops
+
+    - name: Create Python virtualenv with ETL dependencies
+      pip:
+        requirements: "{{ repo_path }}/requirements-bigdata.txt"
+        virtualenv: "{{ venv_path }}"
+        virtualenv_command: python3 -m venv
+      become_user: devops
+
+    # ── ETL agendado ──────────────────────────────────────────────────────────
+    - name: Deploy ETL service and timer
+      template:
+        src: "../templates/{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: "0644"
+      loop:
+        - etl.service
+        - etl.timer
+
+    - name: Enable ETL timer
+      systemd:
+        name: etl.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Flush handlers before the first load
+      meta: flush_handlers
+
+    - name: Run ETL once now
+      systemd:
+        name: etl.service
+        state: started
+
+  handlers:
+    - name: restart postgresql
+      systemd:
+        name: postgresql
+        state: restarted
+
+    - name: reload postgresql
+      systemd:
+        name: postgresql
+        state: reloaded

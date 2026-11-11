@@ -18,6 +18,10 @@ override.tf.json
 ansible/inventory.ini
 *.retry
 
+# Python
+__pycache__/
+.ipynb_checkpoints/
+
 # Sistema
 .DS_Store
 Thumbs.db

@@ -1,0 +1,5 @@
+# Dependências da VM bigdata (ETL e Data Warehouse)
+pandas==2.2.3
+pyarrow==18.1.0
+psycopg[binary]==3.2.3
+python-dotenv==1.0.1

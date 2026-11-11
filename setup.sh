@@ -43,7 +43,7 @@ run_playbook() {
   local log
   log=$(mktemp)
   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory.ini "$playbook" \
-    --extra-vars "github_token=$GITHUB_TOKEN grafana_user=${GRAFANA_USER:-devops} grafana_password=${GRAFANA_PASSWORD:-admin}" > "$log" 2>&1 &
+    --extra-vars "github_token=$GITHUB_TOKEN grafana_user=${GRAFANA_USER:-devops} grafana_password=${GRAFANA_PASSWORD:-admin} dw_reader_password=${DW_READER_PASSWORD:-dw_leitura_lab}" > "$log" 2>&1 &
   local pid=$!
   while kill -0 $pid 2>/dev/null; do
     printf "."
@@ -61,9 +61,9 @@ run_playbook() {
   rm -f "$log"
 }
 
+run_playbook "bigdata"    ansible/playbooks/bigdata.yml
 run_playbook "monitoring" ansible/playbooks/monitoring.yml
 run_playbook "processing" ansible/playbooks/processing.yml
-# run_playbook "bigdata"    ansible/playbooks/bigdata.yml
 run_playbook "generator"  ansible/playbooks/generator.yml
 
 MONITORING_IP=$(grep -A1 '\[monitoring\]' ansible/inventory.ini | tail -1 | awk '{print $1}')

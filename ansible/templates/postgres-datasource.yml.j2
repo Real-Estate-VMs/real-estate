@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: Data Warehouse
+    uid: dw-postgres
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: "{{ groups['bigdata'][0] }}:5432"
+    user: dw_leitura
+    isDefault: false
+    editable: false
+    jsonData:
+      database: realestate
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: "{{ dw_reader_password }}"
