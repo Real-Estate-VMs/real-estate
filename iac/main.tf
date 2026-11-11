@@ -59,7 +59,9 @@ resource "libvirt_domain" "vm" {
   count = length(local.vms)
 
   name   = local.vms[count.index]
-  memory = local.vm_config[local.vms[count.index]].memory
+  # Liga as VMs junto com o host; sem isso o pipeline para depois de um reboot.
+  autostart = true
+  memory    = local.vm_config[local.vms[count.index]].memory
   vcpu   = local.vm_config[local.vms[count.index]].vcpu
 
   cloudinit = libvirt_cloudinit_disk.init[count.index].id
