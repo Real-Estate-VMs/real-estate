@@ -5,11 +5,11 @@ Infraestrutura provisionada via OpenTofu + KVM, configurada via Ansible.
 
 ## Arquitetura
 
-| VM         | Papel                             | Stack        |
-| ---------- | --------------------------------- | ------------ |
-| generator  | Gera dados imobiliários simulados | Python       |
-| processing | Limpa e trata os dados            | R            |
-| bigdata    | Data Warehouse / Data Lake        | Python       |
+| VM         | Papel                             | Stack                |
+| ---------- | --------------------------------- | -------------------- |
+| generator  | Gera dados imobiliários simulados | Python               |
+| processing | Limpa e trata os dados            | R                    |
+| bigdata    | Data Warehouse / Data Lake        | Python               |
 | monitoring | Monitoramento do ambiente         | Grafana + Prometheus |
 
 ## Estrutura do repositório
@@ -25,7 +25,9 @@ real-estate/
 ├── scripts/
 │   ├── generator.py      # Geração de dados imobiliários (São Paulo)
 │   ├── processing.R      # Limpeza dos dados (roda no GitHub Actions)
-│   └── etl.py            # ETL: parquets tratados → Data Warehouse (VM bigdata)
+│   ├── etl.py            # ETL: parquets tratados → Data Warehouse (VM bigdata)
+│   ├── ml_precos.py      # Modelo de preço: grava o preço previsto de cada imóvel no DW
+│   └── notebook.sh       # Atalho: abre o túnel para o Jupyter / gera o HTML do notebook
 ├── sql/
 │   └── dw_schema.sql     # Esquema estrela e views OLAP do Data Warehouse
 ├── notebooks/
@@ -50,7 +52,8 @@ generator ──CSV──▶ GitHub (data/raw) ──Actions──▶ processing
 1. O **generator** cria de 50 a 200 imóveis a cada 30 minutos e faz push do CSV.
 2. O **GitHub Actions** roda no runner da VM processing: o R limpa o CSV e publica um parquet.
 3. O **ETL** da VM bigdata roda a cada 10 minutos, carrega os parquets novos no Data Warehouse (esquema estrela em PostgreSQL) e registra cada carga em `dw.etl_carga`.
-4. O **Grafana** consulta o Data Warehouse e o **notebook** faz a análise completa.
+4. O **modelo de preço** (`ml_precos.py`) roda todo dia às 03:30, prevê o preço de cada imóvel e grava o resultado em `dw.previsao_preco`.
+5. O **Grafana** consulta o Data Warehouse e o **notebook** faz a análise completa.
 
 ## Pré-requisitos
 
@@ -96,9 +99,19 @@ O notebook `notebooks/PI_BigData.ipynb` segue as 6 etapas da disciplina de Big D
 - **Modo `github`** (Colab comum): lê os arquivos do repositório e monta o Data Warehouse em memória (DuckDB). Não precisa das VMs.
 - **Modo `dw`** (Colab conectado à VM bigdata): lê o Data Warehouse real em PostgreSQL.
 
+### Atalho: `scripts/notebook.sh`
+
+```bash
+bash scripts/notebook.sh abrir    # abre o túnel, espera o Jupyter e mostra o link (padrão)
+bash scripts/notebook.sh html     # executa o notebook na VM e baixa notebooks/PI_BigData.html
+bash scripts/notebook.sh status   # mostra se a VM, o Jupyter e o túnel estão de pé
+```
+
+O `html` é útil para apresentar: o notebook completo, já executado, abre no navegador sem esperar.
+
 ### Conectar o Colab à VM bigdata
 
-O Jupyter da VM bigdata escuta só em `localhost:8888`. Abra um túnel SSH e deixe o terminal aberto:
+O Jupyter da VM bigdata escuta só em `localhost:8888`. O `scripts/notebook.sh abrir` faz o túnel por você. Manualmente, abra um túnel SSH e deixe o terminal aberto (o comando não imprime nada: é assim mesmo):
 
 ```bash
 ssh -i ~/.ssh/devops_lab -N -L 8888:localhost:8888 devops@<IP da VM bigdata>
@@ -116,16 +129,18 @@ Com o túnel aberto, o Jupyter também pode ser usado direto no navegador, no me
 
 Esquema estrela em PostgreSQL na VM bigdata (banco `realestate`, schema `dw`):
 
-| Tabela | Conteúdo |
-| --- | --- |
-| `fato_imovel` | um registro por imóvel: preço, área, preço por m², condomínio, vendido |
-| `dim_localizacao` | bairro → região → cidade → estado |
-| `dim_tempo` | data → mês → trimestre → ano (membro "Sem data" para não vendidos) |
-| `dim_tipo_imovel` | tipo do imóvel |
-| `dim_caracteristicas` | quartos, banheiros, vagas, mobiliado, faixas de área e idade |
-| `etl_carga` | histórico de cargas do ETL |
+| Tabela                | Conteúdo                                                               |
+| --------------------- | ---------------------------------------------------------------------- |
+| `fato_imovel`         | um registro por imóvel: preço, área, preço por m², condomínio, vendido |
+| `dim_localizacao`     | bairro → região → cidade → estado                                      |
+| `dim_tempo`           | data → mês → trimestre → ano (membro "Sem data" para não vendidos)     |
+| `dim_tipo_imovel`     | tipo do imóvel                                                         |
+| `dim_caracteristicas` | quartos, banheiros, vagas, mobiliado, faixas de área e idade           |
+| `etl_carga`           | histórico de cargas do ETL                                             |
 
 Views OLAP: `vw_imoveis` (cubo achatado), `vw_rollup_localizacao`, `vw_drilldown_tempo` e `vw_cubo_tipo_regiao`.
+
+Modelo de ML em produção: `previsao_preco` guarda o preço previsto de cada imóvel (por validação cruzada: o modelo que o prevê não o viu no treino), `modelo_metricas` guarda o R², o MAE e o MAPE de cada treino e a view `vw_oportunidades` lista os imóveis disponíveis com o preço previsto. O painel "Oportunidades (modelo de ML)" do Grafana usa essa view.
 
 ```bash
 # Log do ETL
@@ -137,6 +152,15 @@ ssh -i ~/.ssh/devops_lab devops@<IP da VM bigdata> 'sudo systemctl start etl.ser
 # Consultar o DW
 ssh -i ~/.ssh/devops_lab devops@<IP da VM bigdata> 'psql -d realestate -c "SELECT * FROM dw.vw_cubo_tipo_regiao"'
 ```
+
+## Testes automáticos
+
+O workflow `.github/workflows/testes.yml` roda nos runners do GitHub sempre que `scripts/`, `sql/`, `notebooks/`, `ansible/` ou os `requirements` mudam (os commits de dados do generator não disparam). Ele valida:
+
+- **Data Warehouse e ETL**: cria um PostgreSQL limpo, carrega todos os parquets, confere que rodar o ETL de novo não duplica nada, que as chaves das dimensões estão íntegras, que **nenhum dado pessoal** (nome, comprador, observações) chegou ao DW e que as views OLAP respondem.
+- **Modelo de ML**: treina e confere que as previsões foram gravadas com R² acima de 0,8.
+- **Notebook**: executa do início ao fim em modo `github` e confere que o Spark (MapReduce e DataFrame) bate com o DW.
+- **Playbooks, scripts e dashboards**: sintaxe do Ansible, dos scripts shell e do JSON do Grafana.
 
 ## Carga histórica
 
@@ -179,3 +203,5 @@ sudo virsh autostart generator
 ```bash
 tofu destroy
 ```
+
+ssh -i ~/.ssh/devops_lab -N -L 8888:localhost:8888 devops@192.168.122.237
