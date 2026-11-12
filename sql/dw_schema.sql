@@ -127,6 +127,38 @@ SELECT COALESCE(tipo_pt, 'TODOS') AS tipo,
 FROM dw.vw_imoveis
 GROUP BY CUBE (tipo_pt, regiao);
 
+-- ── Machine Learning em produção ─────────────────────────────────────────────
+-- Preço previsto por imóvel, gravado por scripts/ml_precos.py (uma vez por dia).
+-- A previsão de cada imóvel vem de validação cruzada: o modelo que o prevê não o viu no treino.
+CREATE TABLE IF NOT EXISTS dw.previsao_preco (
+    record_id        UUID PRIMARY KEY REFERENCES dw.fato_imovel,
+    preco_previsto   NUMERIC(14, 2) NOT NULL,
+    desconto         NUMERIC(6, 4)  NOT NULL,   -- 1 - preço / preço previsto (positivo = abaixo do previsto)
+    modelo           TEXT           NOT NULL,
+    treinado_em      TIMESTAMPTZ    NOT NULL DEFAULT now()
+);
+
+-- Imóveis disponíveis (não vendidos) com o preço previsto pelo modelo
+CREATE OR REPLACE VIEW dw.vw_oportunidades AS
+SELECT i.record_id, i.bairro, i.regiao, i.tipo_pt, i.quartos, i.area_m2,
+       i.preco, p.preco_previsto, p.desconto, p.modelo, p.treinado_em
+FROM dw.vw_imoveis i
+JOIN dw.previsao_preco p USING (record_id)
+WHERE NOT i.vendido;
+
+-- Métricas do último treino (acompanhar a qualidade do modelo no tempo)
+CREATE TABLE IF NOT EXISTS dw.modelo_metricas (
+    id            SERIAL PRIMARY KEY,
+    treinado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modelo        TEXT        NOT NULL,
+    linhas        INTEGER     NOT NULL,
+    mae           NUMERIC(14, 2),
+    rmse          NUMERIC(14, 2),
+    mape          NUMERIC(8, 4),
+    r2            NUMERIC(8, 4),
+    segundos      NUMERIC(8, 1)
+);
+
 -- ── Acesso somente leitura (Grafana e notebook) ──────────────────────────────
 GRANT USAGE ON SCHEMA dw TO dw_leitura;
 GRANT SELECT ON ALL TABLES IN SCHEMA dw TO dw_leitura;

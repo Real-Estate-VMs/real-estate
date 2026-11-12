@@ -151,7 +151,7 @@
         daemon_reload: true
 
     # ── ETL agendado ──────────────────────────────────────────────────────────
-    - name: Deploy ETL service and timer
+    - name: Deploy ETL and ML services and timers
       template:
         src: "../templates/{{ item }}.j2"
         dest: "/etc/systemd/system/{{ item }}"
@@ -159,13 +159,18 @@
       loop:
         - etl.service
         - etl.timer
+        - ml.service
+        - ml.timer
 
-    - name: Enable ETL timer
+    - name: Enable ETL and ML timers
       systemd:
-        name: etl.timer
+        name: "{{ item }}"
         enabled: true
         state: started
         daemon_reload: true
+      loop:
+        - etl.timer
+        - ml.timer
 
     - name: Flush handlers before the first load
       meta: flush_handlers
@@ -173,6 +178,12 @@
     - name: Run ETL once now
       systemd:
         name: etl.service
+        state: started
+
+    # Primeiro treino logo após a carga; depois o timer repete todo dia às 03:30
+    - name: Train the price model once now
+      systemd:
+        name: ml.service
         state: started
 
   handlers:

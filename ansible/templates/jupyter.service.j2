@@ -8,6 +8,8 @@ User=devops
 WorkingDirectory={{ workspace_path }}
 Environment=DW_DSN=dbname={{ dw_database }}
 Environment=SPARK_DRIVER_MEMORY=1g
+# Clone mantido pelo ETL: o notebook lê os dados daqui em vez de baixá-los do GitHub
+Environment=REPO_LOCAL={{ repo_path }}
 Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 # Só escuta em localhost: o acesso é feito por túnel SSH (ssh -L 8888:localhost:8888)
 ExecStart={{ venv_path }}/bin/jupyter notebook \

@@ -1,0 +1,14 @@
+[Unit]
+Description=Real Estate price model (trains and writes predictions to the Data Warehouse)
+After=postgresql.service etl.service
+
+[Service]
+Type=oneshot
+User=devops
+WorkingDirectory={{ repo_path }}
+Environment=DW_DSN=dbname={{ dw_database }}
+Environment=PYTHONUNBUFFERED=1
+# Prioridade baixa: não disputa CPU com o ETL, o Jupyter e o Spark
+Nice=10
+ExecStart={{ venv_path }}/bin/python {{ repo_path }}/scripts/ml_precos.py
+TimeoutStartSec=30min
