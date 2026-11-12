@@ -44,9 +44,10 @@
         state: started
 
     # ── PostgreSQL (Data Warehouse) ───────────────────────────────────────────
+    # postgresql_set foi removido da coleção community.postgresql 5.x; alter_system existe nas duas linhas
     - name: Listen on all interfaces
-      community.postgresql.postgresql_set:
-        name: listen_addresses
+      community.postgresql.postgresql_alter_system:
+        param: listen_addresses
         value: "*"
       become_user: postgres
       notify: restart postgresql

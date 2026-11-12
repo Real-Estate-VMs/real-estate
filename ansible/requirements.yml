@@ -1,0 +1,8 @@
+---
+# Coleções do Ansible usadas pelos playbooks.
+# Instalar com: ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: community.postgresql
+    version: ">=4.2.0,<6.0.0"
+  - name: community.general
+    version: ">=9.0.0"
