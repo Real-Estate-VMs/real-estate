@@ -13,4 +13,5 @@ notebook==6.5.7
 jupyter_http_over_ws==0.0.8
 ipykernel==6.29.5
 nbconvert==7.16.4
+mistune==3.0.2   # mistune 3.1+ quebra a conversão para HTML do nbconvert 7.16
 setuptools==75.6.0
