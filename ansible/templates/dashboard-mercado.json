@@ -246,12 +246,10 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyBRL",
           "color": {
             "mode": "fixed",
             "fixedColor": "purple"
-          },
-          "decimals": 0
+          }
         },
         "overrides": []
       },
@@ -278,7 +276,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT avg(preco) AS preco FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+          "rawSql": "SELECT 'R$ ' || replace(to_char((avg(preco)) / 1e6, 'FM990.00'), '.', ',') || ' mi' AS preco FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
         }
       ]
     },
@@ -299,12 +297,10 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyBRL",
           "color": {
             "mode": "fixed",
             "fixedColor": "orange"
-          },
-          "decimals": 0
+          }
         },
         "overrides": []
       },
@@ -331,7 +327,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT avg(preco_m2) AS preco_m2 FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+          "rawSql": "SELECT 'R$ ' || replace(to_char((avg(preco_m2)) / 1e3, 'FM990.0'), '.', ',') || ' mil' AS preco_m2 FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
         }
       ]
     },
@@ -352,12 +348,10 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyBRL",
           "color": {
             "mode": "fixed",
             "fixedColor": "dark-green"
-          },
-          "decimals": 0
+          }
         },
         "overrides": []
       },
@@ -384,7 +378,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT sum(preco) FILTER (WHERE vendido) AS valor FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
+          "rawSql": "SELECT 'R$ ' || replace(to_char((sum(preco) FILTER (WHERE vendido)) / 1e9, 'FM990.0'), '.', ',') || ' bi' AS valor FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)"
         }
       ]
     },
@@ -513,15 +507,15 @@
               "showLegend": true,
               "style": {
                 "size": {
-                  "fixed": 6,
-                  "min": 4,
-                  "max": 12
+                  "fixed": 3,
+                  "min": 2,
+                  "max": 4
                 },
                 "color": {
                   "field": "preco_m2",
                   "fixed": "dark-green"
                 },
-                "opacity": 0.75,
+                "opacity": 0.6,
                 "symbol": {
                   "mode": "fixed",
                   "fixed": "img/icons/marker/circle.svg"
@@ -920,102 +914,6 @@
       ]
     },
     {
-      "id": 17,
-      "type": "table",
-      "title": "Oportunidades: preço por m² 20% abaixo da média do bairro",
-      "description": "Imóveis ainda não vendidos com preço por m² bem abaixo de imóveis do mesmo tipo e bairro.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "dw-postgres"
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 32
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Preço"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "prefix:R$ "
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Preço/m²"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "prefix:R$ "
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Média do bairro"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "prefix:R$ "
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "dw-postgres"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "WITH base AS (SELECT bairro, tipo_pt, area_m2, preco, preco_m2, vendido, avg(preco_m2) OVER (PARTITION BY bairro, tipo_pt) AS media_bairro FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao)) SELECT bairro AS \"Bairro\", tipo_pt AS \"Tipo\", area_m2 AS \"Área (m²)\", preco AS \"Preço\", round(preco_m2) AS \"Preço/m²\", round(media_bairro) AS \"Média do bairro\", round(100 * (1 - preco_m2 / media_bairro)) AS \"Desconto (%)\" FROM base WHERE NOT vendido AND preco_m2 <= 0.8 * media_bairro ORDER BY 7 DESC LIMIT 20"
-        }
-      ]
-    },
-    {
       "id": 18,
       "type": "row",
       "title": "Evidência do ETL",
@@ -1039,7 +937,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 42
       },
@@ -1072,6 +970,178 @@
           "editorMode": "code",
           "format": "table",
           "rawSql": "SELECT id AS \"Carga\", arquivo AS \"Arquivo\", finalizado_em AS \"Finalizada em\", linhas_lidas AS \"Lidas\", linhas_inseridas AS \"Inseridas\", linhas_ignoradas AS \"Ignoradas\", status AS \"Status\" FROM dw.etl_carga ORDER BY id DESC LIMIT 15"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Oportunidades (modelo de ML): preço 20% ou mais abaixo do previsto",
+      "description": "Imóveis ainda não vendidos cujo preço está pelo menos 20% abaixo do preço previsto pelo modelo Random Forest (scripts/ml_precos.py, treinado todo dia às 03:30). Cada imóvel é previsto por um modelo que não o viu no treino.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Preço"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyBRL"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Previsto pelo modelo"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyBRL"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT bairro AS \"Bairro\", tipo_pt AS \"Tipo\", round(area_m2) AS \"Área (m²)\", preco AS \"Preço\", round(preco_previsto) AS \"Previsto pelo modelo\", round(100 * desconto) AS \"Desconto (%)\" FROM dw.vw_oportunidades WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND desconto >= 0.2 ORDER BY desconto DESC LIMIT 20"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Treinos do modelo (dw.modelo_metricas)",
+      "description": "Qualidade do modelo de preço a cada treino diário. R² perto de 1 e MAPE baixo = boas previsões.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MAPE"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MAE"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyBRL"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "R²"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT treinado_em AS \"Treinado em\", linhas AS \"Imóveis\", mae AS \"MAE\", mape AS \"MAPE\", r2 AS \"R²\", segundos AS \"Segundos\" FROM dw.modelo_metricas ORDER BY id DESC LIMIT 15"
         }
       ]
     }
