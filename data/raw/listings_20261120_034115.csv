@@ -1,0 +1,55 @@
+record_id,seller_id,seller_name,buyer_id,property_type,neighborhood,city,state,latitude,longitude,area_m2,bedrooms,bathrooms,parking_spots,year_built,furnished,condo_fee,price,sale_date,buyer_notes
+73b0a443-47ee-4f42-8d2d-22bf0a740355,S-012,Larissa Santos,B-F8A5FC7C,house,Itaim Bibi,São Paulo,SP,-23.585396,-46.678818,0,5,5,2,2021,True,0.0,2344264.43,2024-04-23,Concerned about noise from nearby avenue.
+82712cf4-e3c6-4763-aa2c-c966ec5733ac,S-017,Felipe Nascimento,,studio,Mandaqui,São Paulo,Sp,-23.480645,-46.631457,35.2,0,1,0,2008,False,1380.75,295578.61,,
+e6cd7110-e723-4459-9c36-403475af03b1,S-002,Ana Paula Lima,B-7E2B3CCE,apartment,Bom Retiro,São Paulo,S.Paulo,-23.531873,-46.638825,173.1,99,3,3,2012,True,1827.05,1961306.15,2024-05-23,"Interested in the view, wants to negotiate price."
+1d058e39-bc7a-449e-bc77-0207b5f70592,S-004,Fernanda Costa,B-3EDAA11E,apartment,Lapa,São Paulo,Sp,-23.519572,-46.711792,182.3,2,2,0,2014,True,2392.98,1888084.21,2026-01-07,Concerned about noise from nearby avenue.
+27f04ac6-86e2-4d4e-b9e5-cdabe61b96ac,S-007,Diego Alves,B-9E21341A,apartment,Vila Guilherme,São Paulo,sp,-23.511912,-46.593341,71.0,4,4,0,2004,False,455.64,588238.0,2025-11-22,Needs parking for two cars.
+d47adc79-bc82-47a2-9338-039d1509b78f,S-004,Fernanda Costa,B-1D6F0F99,commercial,Consolação,São Paulo,Sp,-23.545062,-46.656957,62.5,0,1,2,1992,True,1549.08,956704.36,2024-04-22,Prefers newly renovated units only.
+35caf0d5-4836-45dc-809d-f5eb0662cc5a,S-016,Aline Gomes,,apartment,Brooklin,São Paulo,São Paulo,-23.61361,-46.694816,151.5,2,2,3,1987,False,481.66,937234.46,,
+45235f3c-84e4-40d1-a2ca-9ceee032ce0b,S-003,Roberto Souza,B-56AD75B0,commercial,Perdizes,São Paulo,São Paulo,-23.532387,-46.656307,-5,0,1,0,1995,True,510.35,2657671.83,2026-03-18,Prefers newly renovated units only.
+04daa4c8-a1fe-4103-9d66-fd834248f054,S-001,Carlos Mendes,B-6C4FD694,house,Saúde,São Paulo,sp,-23.602444,-46.635281,88.9,3,3,0,1979,True,0.0,738808.95,2026-05-05,Prefers newly renovated units only.
+f7b0cc42-0207-4777-8b26-238f304ea018,S-016,Aline Gomes,,apartment,Perdizes,São Paulo,S.Paulo,-23.537893,-46.654548,141.4,3,3,1,1989,False,2150.2,1930360.19,,
+6ba67996-88fa-49a3-8c4e-137f2f8a6ac8,S-012,Larissa Santos,B-7344E465,commercial,Vila Madalena,São Paulo,Sao Paulo,-23.561288,-46.692754,68.3,0,1,3,1985,False,1400.56,1693955.79,2024-10-01,"Very interested, likely to make an offer."
+d7095b79-2087-4537-b41a-6129efba50c8,S-016,Aline Gomes,B-392DCFCD,studio,Ipiranga,São Paulo,Sp,-23.593768,-46.606647,32.9,0,1,3,2017,False,1479.18,226474.11,2023-02-25,Concerned about noise from nearby avenue.
+2f08f99f-148d-4452-a6ce-bab375736188,S-008,Patrícia Nunes,,apartment,Cambuci,São Paulo,Sp,-23.564907,-46.612648,49.9,1,1,2,2002,True,1386.87,449536.72,,
+7ba73800-8ad6-4cbf-bd31-a07ec83d202b,S-013,Gustavo Pereira,B-B766AA83,commercial,Santana,São Paulo,Sao Paulo,-23.50228,-46.634205,304.1,0,1,2,1988,False,589.47,3327026.31,2024-04-10,Looking for a property near public transport.
+9f2ae611-b31f-428d-9cd7-0f8f1d72e248,S-019,Eduardo Cunha,B-CBA885CE,penthouse,Cursino,São Paulo,S.Paulo,-23.605583,-46.614433,155.5,5,3,0,2019,True,433.76,1654289.88,2025-03-22,Needs parking for two cars.
+a6326d51-549a-4835-a885-efb4db1435db,S-006,Juliana Martins,B-8FF4329C,penthouse,Vila Guilherme,São Paulo,sp,-23.504287,-46.600464,263.7,5,4,3,1992,False,1499.93,2045141.62,2023-06-18,Concerned about noise from nearby avenue.
+12b0b6c8-8f04-45a7-b39c-1f2625550bb2,S-011,Bruno Oliveira,B-738216F1,apartment,Bom Retiro,São Paulo,São Paulo,-23.526977,-46.640713,184.4,4,3,2,1982,False,2318.92,1393158.91,2025-07-09,Prefers newly renovated units only.
+36a44471-cc7a-419e-abe5-4ad4a92da849,S-016,Aline Gomes,B-EBDA6FE7,apartment,Mooca,São Paulo,São Paulo,-23.554048,-46.607703,47.1,4,3,1,2020,True,1878.04,310246.84,2026-05-28,"Very interested, likely to make an offer."
+0b1218c8-0a95-4629-9dc5-c157e6b308d8,S-010,Camila Rodrigues,,apartment,Vila Andrade,São Paulo,S.Paulo,-23.648178,-46.721691,159.3,4,3,1,2012,True,1701.43,689082.86,,
+4e693bdb-e834-484d-89d8-d36d65f411af,S-020,Isabela Moreira,B-88709B10,apartment,Moema,São Paulo,S.Paulo,-23.594667,-46.673531,186.9,3,3,1,2007,True,302.09,2565097.88,2024-07-28,Looking for a property near public transport.
+528a39fa-cf5b-4007-b132-52d3f0de6a0b,S-020,Isabela Moreira,,house,Lapa,São Paulo,Sp,-23.5199,-46.701992,259.3,-2,2,3,1996,False,0.0,2559369.93,,
+c1bc379a-584e-4d0a-8801-3f41a9fcb939,S-001,Carlos Mendes,,commercial,Aclimação,São Paulo,São Paulo,-23.563046,-46.627152,164.7,0,1,0,2005,True,510.49,1507545.2,,
+eb999bfa-1c69-4e7a-bcc8-d300821e7836,S-006,Juliana Martins,B-3EE974DC,commercial,Lapa,São Paulo,Sao Paulo,-23.515159,-46.70272,-5,0,1,1,2003,True,2464.31,3274165.88,2026-11-05,Looking for a property near public transport.
+2fbd2473-8cc1-415a-a0e2-dc5eb9f6dcdf,S-010,Camila Rodrigues,B-0AADC25A,penthouse,Casa Verde,São Paulo,S.Paulo,-23.4987,-46.656581,320.1,5,4,3,2000,False,1472.09,2997860.36,2023-04-18,Prefers newly renovated units only.
+70d1d8ce-91b5-4f42-9f31-777527eda609,S-007,Diego Alves,B-7C5D3321,commercial,Bom Retiro,São Paulo,sp,-23.523979,-46.642757,183.1,0,1,3,1989,False,1926.86,2086746.73,2026-12-02,Looking for a property near public transport.
+ebd12cf4-d0b4-4b69-8d46-72e28c798924,S-015,Thiago Barbosa,,penthouse,Morumbi,São Paulo,SP,-23.624304,-46.724428,281.6,5,3,0,1992,False,429.26,4247346.03,,
+a0740f94-e0a3-4cd9-9d6f-fa28a3cd4aea,S-002,Ana Paula Lima,,penthouse,Mandaqui,São Paulo,Sao Paulo,-23.494067,-46.642185,296.3,5,4,0,1982,False,1806.72,-500,,
+a42ef236-ab4b-47dc-bf68-7cb36679b994,S-020,Isabela Moreira,B-EE029573,apartment,Sacomã,São Paulo,sp,-23.601906,-46.5973,104.5,4,4,0,1998,False,1892.1,414159.26,2026-06-25,Wants to schedule a second visit with spouse.
+a43e375b-f4be-4e92-a473-57294d1c1c50,S-003,Roberto Souza,B-EB2E994E,penthouse,Vila Guilherme,São Paulo,SP,-23.512522,-46.593084,212.7,5,2,1,2002,True,547.78,1370122.37,2024-06-21,Wants to schedule a second visit with spouse.
+177cb935-b1e6-44d7-8b42-7024f813fe67,S-010,Camila Rodrigues,B-25A1C492,penthouse,Ipiranga,São Paulo,Sp,-23.595003,-46.599147,172.6,4,2,1,2022,False,2423.87,1380585.97,2026-03-20,Requested details on condo fees.
+6a914790-4b46-4292-ae37-c9c5cae34181,S-011,Bruno Oliveira,B-FAF75FF5,apartment,Vila Madalena,São Paulo,sp,-23.550463,-46.698353,64.2,2,1,2,2021,True,1827.83,1545275.54,2023-01-11,Concerned about noise from nearby avenue.
+0b20ea75-3be9-4560-9c56-4a7486ce693c,S-016,Aline Gomes,B-83A7BC8A,penthouse,Vila Leopoldina,São Paulo,Sao Paulo,-23.521018,-46.740874,321.8,3,4,1,2011,True,1068.67,1981079.43,2024-03-13,Looking for a property near public transport.
+7ff470f2-b38e-4194-8c84-58f1ce4f3c9c,S-014,Vanessa Teixeira,,penthouse,Vila Sônia,São Paulo,Sp,-23.587129,-46.742411,139.3,4,4,0,2015,False,2171.86,513067.53,,
+7750f7a4-1dee-4b92-b70b-3c165feb0526,S-004,Fernanda Costa,B-FD6303D2,penthouse,Sacomã,São Paulo,SP,-23.613021,-46.585277,257.8,3,3,1,2003,False,843.51,1328216.2,2026-04-14,Looking for a property near public transport.
+211df245-b9b7-4c91-818e-9e4913f4d5da,S-018,Renata Freitas,B-5F4CCB49,penthouse,Água Funda,São Paulo,SP,-23.622165,-46.6029,171.0,4,2,2,2007,True,1182.32,1359918.1,2023-06-12,Looking for a property near public transport.
+8be599d6-df0c-40fe-a0c1-528010cd7922,S-017,Felipe Nascimento,B-17059110,studio,Aclimação,São Paulo,S.Paulo,-23.570724,-46.629388,52.8,0,1,2,1993,False,2280.87,418455.54,2026-08-15,Concerned about noise from nearby avenue.
+a9930922-44f1-4b2d-820f-f8c99d09a13b,S-017,Felipe Nascimento,B-2D810517,studio,Santana,São Paulo,SP,-23.500556,-46.630198,47.8,0,1,3,1983,False,1052.92,378880.05,2024-09-21,Looking for a property near public transport.
+44f4d9be-ce92-4bb9-9552-bd3e5cee4a1f,S-014,Vanessa Teixeira,B-DF549074,house,Brás,São Paulo,S.Paulo,-23.537675,-46.617124,-5,2,2,1,2010,False,0.0,1119544.48,2025-10-24,Prefers ground floor due to mobility issues.
+4c4af10c-85fb-41a8-b088-7bcf6066aa61,S-017,Felipe Nascimento,B-9DFF4DAF,house,Moema,São Paulo,Sp,-23.59648,-46.662438,195.3,3,3,3,1983,True,0.0,3272006.18,2025-05-08,Asked about pet policy in the building.
+1ce15d06-95ef-48eb-aa0f-987c4e8dce2e,S-014,Vanessa Teixeira,,apartment,Butantã,São Paulo,S.Paulo,-23.573974,-46.724478,73.4,4,2,1,2018,True,1400.47,651296.58,,
+29261b4d-e950-4aa0-859d-3c224c2b5666,S-018,Renata Freitas,B-D415F3EB,studio,Cidade Ademar,São Paulo,SP,-23.659425,-46.668453,30.6,0,1,3,2017,True,2031.69,105777.81,2026-04-18,Prefers ground floor due to mobility issues.
+d5eafb20-47cf-4485-a9e8-2541c6bec5b4,S-005,Marcelo Ferreira,B-3D3438B4,house,Santana,São Paulo,sp,-23.510136,-46.629815,274.3,3,1,2,1988,False,0.0,2993148.06,2024-12-14,Wants to schedule a second visit with spouse.
+2138afba-7cd9-43c5-b036-b41bb5ea6878,S-011,Bruno Oliveira,B-1118FDDA,apartment,Saúde,São Paulo,Sao Paulo,-23.599958,-46.634577,188.8,2,2,0,1975,False,2418.71,1539639.61,2025-09-08,Prefers ground floor due to mobility issues.
+82dc4066-176c-480e-b14d-c858875f6d54,S-003,Roberto Souza,B-24D05694,studio,Sapopemba,São Paulo,São Paulo,-23.613511,-46.517392,36.2,0,1,3,2007,False,993.25,183225.36,2024-02-20,"Interested in the view, wants to negotiate price."
+1c4af151-ba4a-4846-91fa-a22277c939a2,S-018,Renata Freitas,B-4E9AD388,apartment,Cambuci,São Paulo,sp,-23.573718,-46.616168,81.6,3,2,1,1985,False,355.49,0,2024-03-07,Concerned about noise from nearby avenue.
+b94faa69-2ff4-481e-9cd0-8c259117664c,S-019,Eduardo Cunha,B-CCAA91FD,apartment,Cidade Ademar,São Paulo,S.Paulo,-23.659409,-46.661159,55.9,99,5,2,1995,False,1648.9,187341.2,2025-10-16,Concerned about noise from nearby avenue.
+c07bc7ed-837d-4bdb-81ac-935fc7735093,S-019,Eduardo Cunha,B-8B629E87,studio,Vila Guilherme,São Paulo,Sp,-23.512604,-46.594287,35.5,0,1,3,1988,True,2487.56,357412.88,2026-05-09,Prefers newly renovated units only.
+c7b27c90-8a80-4529-b4fe-964fedbc9e67,S-002,Ana Paula Lima,B-DCE36884,commercial,Saúde,São Paulo,São Paulo,-23.604461,-46.631387,127.8,0,1,3,2002,True,1340.38,1461078.51,2025-10-28,Looking for a property near public transport.
+3d83ce0d-df2e-43a3-bbbe-f2e5457d7f6b,S-001,Carlos Mendes,B-8FEA08FF,studio,Cambuci,São Paulo,SP,-23.57301,-46.617796,20.0,0,1,0,1987,False,2017.86,176353.51,2026-03-24,"Very interested, likely to make an offer."
+2e172cb8-7862-4ee1-81ea-49b30ebeeec3,S-006,Juliana Martins,,studio,Pinheiros,São Paulo,SP,-23.565877,-46.68549,32.1,0,1,2,1990,False,956.85,603753.39,,
+f2b6a003-cd65-4d00-88df-ece01f515d60,S-017,Felipe Nascimento,,studio,Brooklin,São Paulo,Sp,-23.610177,-46.697234,-10,0,1,3,2015,False,377.33,474562.69,,
+cf88ffc0-cd92-4d4b-ba2a-4450a418a2d2,S-020,Isabela Moreira,B-2407897A,house,Cursino,São Paulo,Sao Paulo,-23.609022,-46.619517,234.0,5,4,2,2023,True,0.0,2445317.65,2023-06-17,Requested details on condo fees.
+29c25bbc-0c08-4631-b168-35b63331a8d0,S-017,Felipe Nascimento,B-039DBD7B,studio,Vila Madalena,São Paulo,Sao Paulo,-23.564414,-46.691741,42.8,0,1,2,1985,False,1557.63,666954.13,2023-12-14,Wants to schedule a second visit with spouse.
+663a8e5a-90f6-457e-a4f8-888af3e93b32,S-010,Camila Rodrigues,,house,Vila Prudente,São Paulo,São Paulo,-23.592138,-46.576137,194.9,5,4,1,1991,False,0.0,1124744.02,,
