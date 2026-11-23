@@ -24,6 +24,10 @@ locals {
     bigdata    = { memory = 3072, vcpu = 2, mac = "52:54:00:6E:F5:69", cpu_mode = "host-passthrough" }
     monitoring = { memory = 2048, vcpu = 2, mac = "52:54:00:FA:0B:29", cpu_mode = "custom" }
   }
+
+  # file() só roda se a chave existir; senão o plan falha na precondition, com mensagem clara.
+  ssh_pub_key_path = pathexpand("~/.ssh/devops_lab.pub")
+  ssh_pub_key      = fileexists(local.ssh_pub_key_path) ? trimspace(file(local.ssh_pub_key_path)) : ""
 }
 
 resource "libvirt_volume" "ubuntu_base" {
@@ -31,6 +35,12 @@ resource "libvirt_volume" "ubuntu_base" {
   pool   = "default"
   source = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
   format = "qcow2"
+
+  # A URL "current" muda de conteúdo. Ignorar source evita recriar a base e os
+  # discos das VMs num apply seguinte.
+  lifecycle {
+    ignore_changes = [source]
+  }
 }
 
 resource "libvirt_volume" "vm_disk" {
@@ -51,8 +61,15 @@ resource "libvirt_cloudinit_disk" "init" {
 
   user_data = templatefile("${path.module}/cloud_init.cfg", {
     hostname = local.vms[count.index]
-    ssh_key  = trimspace(file(pathexpand("~/.ssh/devops_lab.pub")))
+    ssh_key  = local.ssh_pub_key
   })
+
+  lifecycle {
+    precondition {
+      condition     = can(regex("^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) ", local.ssh_pub_key))
+      error_message = "Chave pública ausente ou inválida em ~/.ssh/devops_lab.pub. Gere com: ssh-keygen -t ed25519 -f ~/.ssh/devops_lab"
+    }
+  }
 }
 
 resource "libvirt_domain" "vm" {
