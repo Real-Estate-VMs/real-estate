@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ETL do Projeto Integrador: data/processed/*.parquet → Data Warehouse (PostgreSQL).
+"""ETL do Projeto Integrador: data/processed/listings_*_clean.parquet → Data Warehouse (PostgreSQL).
 
 Extração : lê os parquets já limpos pelo pipeline (processing.R) no repositório.
 Transform: deriva região, preço por m², faixas de área e idade e a dimensão tempo.
@@ -18,15 +18,20 @@ import psycopg
 REPO_PATH = os.getenv("REPO_PATH", "/home/devops/repo")
 DW_DSN = os.getenv("DW_DSN", "dbname=realestate")
 SCHEMA_FILE = os.path.join(REPO_PATH, "sql", "dw_schema.sql")
-PROCESSED_GLOB = os.path.join(REPO_PATH, "data", "processed", "*.parquet")
+PROCESSED_DIR = os.path.join(REPO_PATH, "data", "processed")
+PROCESSED_GLOB = os.path.join(PROCESSED_DIR, "listings_*_clean.parquet")
 LOCK_ID = 2026_11_10  # evita duas cargas simultâneas (timer + execução manual)
 
-# O mapeamento bairro → região vem do próprio generator, para não duplicar a regra
-sys.path.insert(0, os.path.join(REPO_PATH, "scripts"))
-from generator import SP_NEIGHBORHOODS  # noqa: E402
+# Colunas que o parquet limpo precisa ter. Dados pessoais (seller_*, buyer_*) não entram no DW.
+COLUNAS_OBRIGATORIAS = (
+    "record_id", "neighborhood", "city", "property_type",
+    "bedrooms", "bathrooms", "parking_spots", "furnished",
+    "year_built", "condo_fee", "price", "area_m2",
+    "sale_date", "latitude", "longitude",
+)
 
 REGIAO_PT = {"noble": "Nobre", "mid": "Intermediária", "peripheral": "Periférica"}
-BAIRROS = {nome: (REGIAO_PT[zona], lat, lon) for nome, lat, lon, zona in SP_NEIGHBORHOODS}
+BAIRROS = {}
 
 TIPO_PT = {
     "apartment": "Apartamento",
@@ -42,6 +47,73 @@ DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 
 def log(msg):
     print(f"[{datetime.now().isoformat(timespec='seconds')}] {msg}", flush=True)
+
+
+def validar_ambiente():
+    """REPO_PATH e DW_DSN precisam existir antes de qualquer leitura ou conexão."""
+    erros = []
+    if not str(REPO_PATH).strip():
+        erros.append("variável de ambiente REPO_PATH está vazia")
+    elif not os.path.isdir(REPO_PATH):
+        erros.append(f"REPO_PATH não existe ou não é diretório: {REPO_PATH}")
+    if not str(DW_DSN).strip():
+        erros.append("variável de ambiente DW_DSN está vazia")
+    for msg in erros:
+        log(f"[ERRO] {msg}")
+    if not erros:
+        log(f"Ambiente ok: REPO_PATH={REPO_PATH}")
+    return not erros
+
+
+def validar_repositorio():
+    """Schema e pasta de parquets, conferidos depois do git pull."""
+    erros = []
+    if not os.path.isfile(SCHEMA_FILE):
+        erros.append(f"schema do DW não encontrado: {SCHEMA_FILE}")
+    elif os.path.getsize(SCHEMA_FILE) == 0:
+        erros.append(f"schema do DW está vazio: {SCHEMA_FILE}")
+    if not os.path.isdir(PROCESSED_DIR):
+        erros.append(f"pasta de parquets não encontrada: {PROCESSED_DIR}")
+    gerador = os.path.join(REPO_PATH, "scripts", "generator.py")
+    if not os.path.isfile(gerador):
+        erros.append(f"generator.py não encontrado: {gerador}")
+    for msg in erros:
+        log(f"[ERRO] {msg}")
+    return not erros
+
+
+def carregar_bairros():
+    """Bairro → região vem do generator, para não duplicar a regra."""
+    scripts = os.path.join(REPO_PATH, "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    from generator import SP_NEIGHBORHOODS  # noqa: E402
+
+    BAIRROS.clear()
+    BAIRROS.update({nome: (REGIAO_PT[zona], lat, lon) for nome, lat, lon, zona in SP_NEIGHBORHOODS})
+    if not BAIRROS:
+        log("[ERRO] generator.SP_NEIGHBORHOODS está vazio")
+        return False
+    return True
+
+
+def ler_parquet(path):
+    """Recusa arquivo vazio, ilegível ou sem as colunas do pipeline."""
+    arquivo = os.path.basename(path)
+    if not os.path.isfile(path):
+        raise ValueError("arquivo não encontrado")
+    if os.path.getsize(path) == 0:
+        raise ValueError("arquivo vazio")
+    try:
+        df = pd.read_parquet(path)
+    except Exception as exc:
+        raise ValueError(f"arquivo corrompido ou ilegível: {exc}") from exc
+    faltando = [coluna for coluna in COLUNAS_OBRIGATORIAS if coluna not in df.columns]
+    if faltando:
+        raise ValueError("colunas faltantes: " + ", ".join(faltando))
+    if df.empty:
+        log(f"[AVISO] {arquivo}: parquet sem linhas")
+    return df
 
 
 def faixa_area(area):
@@ -171,9 +243,19 @@ def load_dimensions(cur, rows):
     return loc, tipo, carac
 
 
+def arquivos_pendentes(carregados):
+    validos = sorted(glob.glob(PROCESSED_GLOB))
+    nomes_validos = {os.path.basename(p) for p in validos}
+    for path in sorted(glob.glob(os.path.join(PROCESSED_DIR, "*.parquet"))):
+        nome = os.path.basename(path)
+        if nome not in nomes_validos:
+            log(f"[AVISO] {nome}: nome fora do padrão listings_*_clean.parquet; arquivo ignorado")
+    return [p for p in validos if os.path.basename(p) not in carregados]
+
+
 def load_file(conn, path):
     arquivo = os.path.basename(path)
-    df = pd.read_parquet(path)
+    df = ler_parquet(path)
     rows, ignoradas = transform(df)
 
     with conn.transaction(), conn.cursor() as cur:
@@ -217,17 +299,32 @@ def git_pull():
 
 
 def main():
+    if not validar_ambiente():
+        return 1
     git_pull()
-    with psycopg.connect(DW_DSN, autocommit=True) as conn:
+    if not validar_repositorio() or not carregar_bairros():
+        return 1
+
+    try:
+        conn_cm = psycopg.connect(DW_DSN, autocommit=True)
+    except psycopg.Error as exc:
+        log(f"[ERRO] falha ao conectar no Data Warehouse; confira DW_DSN: {exc}")
+        return 1
+
+    with conn_cm as conn:
         if not conn.execute("SELECT pg_try_advisory_lock(%s)", (LOCK_ID,)).fetchone()[0]:
             log("Outra carga está em andamento; saindo.")
             return 0
 
-        with open(SCHEMA_FILE, encoding="utf-8") as f:
-            conn.execute(f.read())
+        try:
+            with open(SCHEMA_FILE, encoding="utf-8") as f:
+                conn.execute(f.read())
+        except Exception as exc:
+            log(f"[ERRO] falha ao aplicar o schema do DW ({SCHEMA_FILE}): {exc}")
+            return 1
 
         carregados = {row[0] for row in conn.execute("SELECT arquivo FROM dw.etl_carga WHERE status = 'concluída'")}
-        pendentes = [p for p in sorted(glob.glob(PROCESSED_GLOB)) if os.path.basename(p) not in carregados]
+        pendentes = arquivos_pendentes(carregados)
         if not pendentes:
             log("Nenhum arquivo novo.")
             return 0
