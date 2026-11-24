@@ -64,18 +64,58 @@ print(dados |> filter(!is.na(bedrooms) & (bedrooms < 0 | bedrooms > 20)) |> nrow
 cat("\n==> Iniciando limpeza...\n")
 total_antes <- nrow(dados)
 
+for (coluna in c("bathrooms", "parking_spots", "year_built", "condo_fee", "latitude", "longitude")) {
+  if (coluna %in% names(dados)) {
+    dados[[coluna]] <- suppressWarnings(as.numeric(dados[[coluna]]))
+  }
+}
+
+dados <- dados |>
+  mutate(
+    record_id = str_trim(as.character(record_id)),
+    neighborhood = str_trim(as.character(neighborhood)),
+    property_type = str_trim(tolower(as.character(property_type))),
+    price = suppressWarnings(as.numeric(price)),
+    area_m2 = suppressWarnings(as.numeric(area_m2)),
+    bedrooms = suppressWarnings(as.integer(bedrooms)),
+    state = "SP",
+    sale_date = as.Date(sale_date)
+  )
+
+if ("bathrooms" %in% names(dados)) {
+  dados <- dados |>
+    mutate(bathrooms = if_else(!is.na(bathrooms) & (bathrooms < 0 | bathrooms > 20), NA_real_, bathrooms))
+}
+if ("parking_spots" %in% names(dados)) {
+  dados <- dados |>
+    mutate(parking_spots = if_else(!is.na(parking_spots) & (parking_spots < 0 | parking_spots > 12), NA_real_, parking_spots))
+}
+if ("year_built" %in% names(dados)) {
+  ano_max <- as.integer(format(Sys.Date(), "%Y")) + 1L
+  dados <- dados |>
+    mutate(year_built = if_else(!is.na(year_built) & (year_built < 1900 | year_built > ano_max), NA_real_, year_built))
+}
+if ("condo_fee" %in% names(dados)) {
+  dados <- dados |>
+    mutate(condo_fee = if_else(!is.na(condo_fee) & condo_fee < 0, NA_real_, condo_fee))
+}
+if (all(c("latitude", "longitude") %in% names(dados))) {
+  dados <- dados |>
+    mutate(
+      latitude = if_else(!is.na(latitude) & latitude >= -25.5 & latitude <= -22.5, latitude, NA_real_),
+      longitude = if_else(!is.na(longitude) & longitude >= -47.8 & longitude <= -45.5, longitude, NA_real_)
+    )
+}
+
 dados_limpos <- dados |>
-  # padroniza state → "SP"
-  mutate(state = "SP") |>
-  # converte sale_date para Date
-  mutate(sale_date = as.Date(sale_date)) |>
-  # remove price inválido
+  filter(!is.na(record_id) & record_id != "" & record_id != "NA") |>
+  filter(!is.na(neighborhood) & neighborhood != "" & neighborhood != "NA") |>
+  filter(!is.na(property_type) & property_type != "" & property_type != "na") |>
   filter(!is.na(price) & price > 0) |>
-  # remove area_m2 inválida
   filter(!is.na(area_m2) & area_m2 > 0) |>
-  # remove bedrooms inválido
   filter(is.na(bedrooms) | (bedrooms >= 0 & bedrooms <= 20)) |>
-  # ordena por neighborhood e price
+  arrange(desc(price)) |>
+  distinct(record_id, .keep_all = TRUE) |>
   arrange(neighborhood, desc(price))
 
 total_depois <- nrow(dados_limpos)

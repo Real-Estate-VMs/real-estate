@@ -27,7 +27,10 @@ real-estate/
 │   ├── processing.R      # Limpeza dos dados (roda no GitHub Actions)
 │   ├── etl.py            # ETL: parquets tratados → Data Warehouse (VM bigdata)
 │   ├── ml_precos.py      # Modelo de preço: grava o preço previsto de cada imóvel no DW
-│   └── notebook.sh       # Atalho: abre o túnel para o Jupyter / gera o HTML do notebook
+│   ├── notebook.sh       # Atalho: abre o túnel para o Jupyter / gera o HTML do notebook
+│   └── testar.sh         # Testes do gerador e do ETL, sem PostgreSQL
+├── tests/
+│   └── test_pipeline.py  # Regras de descarte, faixas e CSV de 20 colunas
 ├── sql/
 │   └── dw_schema.sql     # Esquema estrela e views OLAP do Data Warehouse
 ├── notebooks/
@@ -88,7 +91,7 @@ bash setup.sh
 Ao final, acesse o Grafana em `http://<IP da VM monitoring>:3000` com as credenciais definidas em `GRAFANA_USER` e `GRAFANA_PASSWORD`. Há dois dashboards:
 
 - **DevOps Metrics**: CPU, memória, disco e rede das VMs.
-- **Mercado Imobiliário SP (Data Warehouse)**: indicadores, mapa de preço por m², roll-up, drill-down, cubo tipo × região, oportunidades e o histórico de cargas do ETL. Os filtros do topo (região, tipo e situação) fazem slice e dice.
+- **Mercado Imobiliário SP (Data Warehouse)**: indicadores, mapa de preço por m², roll-up, drill-down, cubo tipo × região, ranking de bairros, oportunidades e o histórico de cargas do ETL. Os filtros do topo (região, tipo e situação) fazem slice e dice.
 
 ## Notebook (Google Colab)
 
@@ -138,7 +141,7 @@ Esquema estrela em PostgreSQL na VM bigdata (banco `realestate`, schema `dw`):
 | `dim_caracteristicas` | quartos, banheiros, vagas, mobiliado, faixas de área e idade           |
 | `etl_carga`           | histórico de cargas do ETL                                             |
 
-Views OLAP: `vw_imoveis` (cubo achatado), `vw_rollup_localizacao`, `vw_drilldown_tempo` e `vw_cubo_tipo_regiao`.
+Views OLAP: `vw_imoveis` (cubo achatado), `vw_rollup_localizacao`, `vw_drilldown_tempo`, `vw_cubo_tipo_regiao`, `vw_ranking_bairros`, `vw_serie_mensal` e `vw_resumo_cargas`.
 
 Modelo de ML em produção: `previsao_preco` guarda o preço previsto de cada imóvel (por validação cruzada: o modelo que o prevê não o viu no treino), `modelo_metricas` guarda o R², o MAE e o MAPE de cada treino e a view `vw_oportunidades` lista os imóveis disponíveis com o preço previsto. O painel "Oportunidades (modelo de ML)" do Grafana usa essa view.
 
@@ -157,6 +160,7 @@ ssh -i ~/.ssh/devops_lab devops@<IP da VM bigdata> 'psql -d realestate -c "SELEC
 
 O workflow `.github/workflows/testes.yml` roda nos runners do GitHub sempre que `scripts/`, `sql/`, `notebooks/`, `ansible/` ou os `requirements` mudam (os commits de dados do generator não disparam). Ele valida:
 
+- **Gerador e ETL (sem banco)**: confere o CSV de 20 colunas, a carga histórica e as regras de descarte do ETL (`python -m unittest discover -s tests -v`, ou `bash scripts/testar.sh`).
 - **Data Warehouse e ETL**: cria um PostgreSQL limpo, carrega todos os parquets, confere que rodar o ETL de novo não duplica nada, que as chaves das dimensões estão íntegras, que **nenhum dado pessoal** (nome, comprador, observações) chegou ao DW e que as views OLAP respondem.
 - **Modelo de ML**: treina e confere que as previsões foram gravadas com R² acima de 0,8.
 - **Notebook**: executa do início ao fim em modo `github` e confere que o Spark (MapReduce e DataFrame) bate com o DW.
@@ -203,5 +207,3 @@ sudo virsh autostart generator
 ```bash
 tofu destroy
 ```
-
-ssh -i ~/.ssh/devops_lab -N -L 8888:localhost:8888 devops@192.168.122.237

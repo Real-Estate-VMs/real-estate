@@ -6,7 +6,13 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-source .env
+tmp_env=$(mktemp)
+tr -d '\r' < .env > "$tmp_env"
+set -a
+# shellcheck disable=SC1090
+source "$tmp_env"
+set +a
+rm -f "$tmp_env"
 
 if [ -z "$GITHUB_TOKEN" ]; then
   echo "ERROR: GITHUB_TOKEN is not set in .env"

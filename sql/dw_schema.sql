@@ -161,6 +161,46 @@ CREATE TABLE IF NOT EXISTS dw.modelo_metricas (
     segundos      NUMERIC(8, 1)
 );
 
+CREATE INDEX IF NOT EXISTS ix_fato_preco_m2 ON dw.fato_imovel (preco_m2);
+CREATE INDEX IF NOT EXISTS ix_etl_carga_status ON dw.etl_carga (status);
+
+-- Ranking de bairros: preço por m², mediana e taxa de venda
+CREATE OR REPLACE VIEW dw.vw_ranking_bairros AS
+SELECT l.bairro,
+       l.regiao,
+       COUNT(*)                                                          AS imoveis,
+       COUNT(*) FILTER (WHERE f.vendido)                                 AS vendidos,
+       ROUND(100.0 * COUNT(*) FILTER (WHERE f.vendido) / NULLIF(COUNT(*), 0), 1) AS taxa_venda,
+       ROUND(AVG(f.preco_m2), 2)                                         AS preco_m2_medio,
+       ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY f.preco_m2))::numeric, 2) AS preco_m2_mediano
+FROM dw.fato_imovel f
+JOIN dw.dim_localizacao l USING (sk_localizacao)
+GROUP BY l.bairro, l.regiao;
+
+-- Série mensal só de vendas (sk_tempo = 0 fica de fora)
+CREATE OR REPLACE VIEW dw.vw_serie_mensal AS
+SELECT tp.ano,
+       tp.mes,
+       tp.nome_mes,
+       COUNT(*)                AS vendas,
+       ROUND(SUM(f.preco), 2)  AS valor_total,
+       ROUND(AVG(f.preco_m2), 2) AS preco_m2_medio
+FROM dw.fato_imovel f
+JOIN dw.dim_tempo tp USING (sk_tempo)
+WHERE f.vendido AND tp.sk_tempo <> 0
+GROUP BY tp.ano, tp.mes, tp.nome_mes;
+
+-- Quanto cada status de carga já processou
+CREATE OR REPLACE VIEW dw.vw_resumo_cargas AS
+SELECT status,
+       COUNT(*)                              AS arquivos,
+       COALESCE(SUM(linhas_lidas), 0)        AS linhas_lidas,
+       COALESCE(SUM(linhas_inseridas), 0)    AS linhas_inseridas,
+       COALESCE(SUM(linhas_ignoradas), 0)    AS linhas_ignoradas,
+       MAX(finalizado_em)                    AS ultima
+FROM dw.etl_carga
+GROUP BY status;
+
 -- ── Acesso somente leitura (Grafana e notebook) ──────────────────────────────
 GRANT USAGE ON SCHEMA dw TO dw_leitura;
 GRANT SELECT ON ALL TABLES IN SCHEMA dw TO dw_leitura;

@@ -1,6 +1,7 @@
 import csv
 import os
 import random
+import shutil
 import subprocess
 import time
 import uuid
@@ -10,12 +11,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def env_int(nome, padrao):
+    bruto = os.getenv(nome, str(padrao))
+    try:
+        return int(bruto)
+    except (TypeError, ValueError):
+        print(f"[ERROR] {nome}={bruto!r} não é inteiro; usando {padrao}", flush=True)
+        return padrao
+
+
 OUTPUT_DIR       = os.getenv("OUTPUT_DIR", "/home/devops/data/raw")
 REPO_PATH        = os.getenv("REPO_PATH", "/home/devops/repo")
-INTERVAL_SECONDS = int(os.getenv("INTERVAL_SECONDS", 1800))
-STARTUP_DELAY    = int(os.getenv("STARTUP_DELAY", 300))
-BATCH_SIZE_MIN   = int(os.getenv("BATCH_SIZE_MIN", 50))
-BATCH_SIZE_MAX   = int(os.getenv("BATCH_SIZE_MAX", 200))
+INTERVAL_SECONDS = env_int("INTERVAL_SECONDS", 1800)
+STARTUP_DELAY    = env_int("STARTUP_DELAY", 300)
+BATCH_SIZE_MIN   = env_int("BATCH_SIZE_MIN", 50)
+BATCH_SIZE_MAX   = env_int("BATCH_SIZE_MAX", 200)
 
 SP_NEIGHBORHOODS = [
     ("Moema",               -23.5983, -46.6659, "noble"),
@@ -63,6 +74,14 @@ SP_NEIGHBORHOODS = [
     ("Sacomã",              -23.6097, -46.5928, "peripheral"),
     ("Cidade Ademar",       -23.6639, -46.6611, "peripheral"),
     ("Cidade Dutra",        -23.7008, -46.6611, "peripheral"),
+    ("Vila Olímpia",        -23.5950, -46.6860, "noble"),
+    ("República",           -23.5436, -46.6428, "mid"),
+    ("Santa Cecília",       -23.5382, -46.6624, "mid"),
+    ("Tucuruvi",            -23.4802, -46.6032, "mid"),
+    ("Vila Maria",          -23.5154, -46.5931, "mid"),
+    ("Campo Limpo",         -23.6492, -46.7594, "peripheral"),
+    ("Capão Redondo",       -23.6685, -46.7796, "peripheral"),
+    ("São Miguel",          -23.4962, -46.4421, "peripheral"),
 ]
 
 PRICE_PER_M2 = {
@@ -80,6 +99,22 @@ AREA_RANGE = {
 }
 
 PROPERTY_TYPES = ["apartment", "house", "studio", "commercial", "penthouse"]
+
+# Ajuste em cima do preço por m² da região: cobertura fica mais cara, comercial oscila mais.
+TYPE_PRICE_FACTOR = {
+    "studio":     (0.85, 1.05),
+    "apartment":  (0.95, 1.15),
+    "house":      (0.90, 1.20),
+    "penthouse":  (1.15, 1.55),
+    "commercial": (0.70, 1.30),
+}
+
+CSV_FIELDS = [
+    "record_id", "seller_id", "seller_name", "buyer_id", "property_type",
+    "neighborhood", "city", "state", "latitude", "longitude", "area_m2",
+    "bedrooms", "bathrooms", "parking_spots", "year_built", "furnished",
+    "condo_fee", "price", "sale_date", "buyer_notes",
+]
 
 SELLERS = [
     {"id": "S-001", "name": "Carlos Mendes"},
@@ -126,6 +161,30 @@ DIRTY_VALUES = {
 }
 
 
+def log(msg):
+    print(f"[{datetime.now().isoformat(timespec='seconds')}] {msg}", flush=True)
+
+
+def validar_config():
+    """Recusa intervalos e lotes que fariam o serviço gravar lixo ou travar."""
+    erros = []
+    if INTERVAL_SECONDS <= 0:
+        erros.append(f"INTERVAL_SECONDS deve ser > 0 (recebido {INTERVAL_SECONDS})")
+    if STARTUP_DELAY < 0:
+        erros.append(f"STARTUP_DELAY deve ser >= 0 (recebido {STARTUP_DELAY})")
+    if BATCH_SIZE_MIN < 1:
+        erros.append(f"BATCH_SIZE_MIN deve ser >= 1 (recebido {BATCH_SIZE_MIN})")
+    if BATCH_SIZE_MAX < BATCH_SIZE_MIN:
+        erros.append(
+            f"BATCH_SIZE_MAX ({BATCH_SIZE_MAX}) é menor que BATCH_SIZE_MIN ({BATCH_SIZE_MIN})"
+        )
+    if not str(OUTPUT_DIR).strip():
+        erros.append("OUTPUT_DIR está vazio")
+    if not str(REPO_PATH).strip():
+        erros.append("REPO_PATH está vazio")
+    return erros
+
+
 def random_coords(lat_base, lon_base):
     return (
         round(lat_base + random.uniform(-0.008, 0.008), 6),
@@ -150,7 +209,8 @@ def generate_record():
     area = round(random.uniform(area_min, area_max), 1)
 
     price_min, price_max = PRICE_PER_M2[zone]
-    price = round(area * random.uniform(price_min, price_max), 2)
+    fator_min, fator_max = TYPE_PRICE_FACTOR[prop_type]
+    price = round(area * random.uniform(price_min, price_max) * random.uniform(fator_min, fator_max), 2)
 
     if prop_type == "studio":
         bedrooms, bathrooms = 0, 1
@@ -210,21 +270,45 @@ def generate_record():
     }
 
 
+def executar(cmd, tentativas=1):
+    ultimo = None
+    for tentativa in range(1, tentativas + 1):
+        ultimo = subprocess.run(cmd, capture_output=True, text=True)
+        if ultimo.returncode == 0:
+            return ultimo
+        log(f"[ERROR] {' '.join(cmd)} (tentativa {tentativa}/{tentativas})\n{ultimo.stderr.strip()}")
+        if tentativa < tentativas:
+            time.sleep(2 * tentativa)
+    return ultimo
+
+
 def push_to_github(filepath):
     filename = os.path.basename(filepath)
-    commands = [
-        ["git", "-C", REPO_PATH, "pull", "--rebase"],
-        ["cp", filepath, os.path.join(REPO_PATH, "data", "raw", filename)],
-        ["git", "-C", REPO_PATH, "add", f"data/raw/{filename}"],
-        ["git", "-C", REPO_PATH, "commit", "-m", f"raw data: add {filename}"],
-        ["git", "-C", REPO_PATH, "push"],
-    ]
-    for cmd in commands:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"[ERROR] {' '.join(cmd)}\n{result.stderr}")
-            return False
-    return True
+    destino_dir = os.path.join(REPO_PATH, "data", "raw")
+    destino = os.path.join(destino_dir, filename)
+    if executar(["git", "-C", REPO_PATH, "pull", "--rebase"], tentativas=3).returncode != 0:
+        return False
+    try:
+        os.makedirs(destino_dir, exist_ok=True)
+        shutil.copy2(filepath, destino)
+    except OSError as exc:
+        log(f"[ERROR] não copiei {filename} para o repositório: {exc}")
+        return False
+    if executar(["git", "-C", REPO_PATH, "add", f"data/raw/{filename}"]).returncode != 0:
+        return False
+    if executar(["git", "-C", REPO_PATH, "commit", "-m", f"raw data: add {filename}"]).returncode != 0:
+        return False
+    return executar(["git", "-C", REPO_PATH, "push"], tentativas=3).returncode == 0
+
+
+def escrever_csv(path, records):
+    pasta = os.path.dirname(os.path.abspath(path))
+    if pasta:
+        os.makedirs(pasta, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(records)
 
 
 def run():
@@ -235,32 +319,26 @@ def run():
     filename  = f"listings_{timestamp}.csv"
     filepath  = os.path.join(OUTPUT_DIR, filename)
 
-    records   = [generate_record() for _ in range(batch_size)]
-    fieldnames = list(records[0].keys())
+    records = [generate_record() for _ in range(batch_size)]
+    escrever_csv(filepath, records)
 
-    with open(filepath, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(records)
-
-    print(f"[{datetime.now().isoformat()}] Generated {batch_size} records → {filename}")
+    log(f"Generated {batch_size} records → {filename}")
 
     if push_to_github(filepath):
-        print(f"[{datetime.now().isoformat()}] Pushed {filename} to GitHub")
+        log(f"Pushed {filename} to GitHub")
         os.remove(filepath)
     else:
-        print(f"[{datetime.now().isoformat()}] Push failed — file kept locally at {filepath}")
+        log(f"Push failed — file kept locally at {filepath}")
 
 
 def generate_history(total, path, seed):
     """Carga histórica: gera `total` registros de uma vez num CSV (sem push)."""
+    if total < 1:
+        raise ValueError("a carga histórica precisa de pelo menos 1 registro")
     random.seed(seed)
     records = [generate_record() for _ in range(total)]
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(records[0].keys()))
-        writer.writeheader()
-        writer.writerows(records)
-    print(f"Historical load: {total} records → {path}")
+    escrever_csv(path, records)
+    log(f"Historical load: {total} records → {path}")
 
 
 if __name__ == "__main__":
@@ -272,12 +350,24 @@ if __name__ == "__main__":
     parser.add_argument("--saida", default="listings_historico.csv", help="arquivo CSV da carga histórica")
     parser.add_argument("--seed", type=int, default=2026, help="semente para reproduzir a carga histórica")
     args = parser.parse_args()
+    erros = validar_config()
+    for msg in erros:
+        log(f"[ERROR] {msg}")
+    if erros:
+        raise SystemExit(1)
     if args.historico:
-        generate_history(args.historico, args.saida, args.seed)
+        try:
+            generate_history(args.historico, args.saida, args.seed)
+        except (OSError, ValueError) as exc:
+            log(f"[ERROR] {exc}")
+            raise SystemExit(1)
         raise SystemExit(0)
 
-    print(f"Generator started. First run in {STARTUP_DELAY}s, then every {INTERVAL_SECONDS}s.")
+    log(f"Generator started. First run in {STARTUP_DELAY}s, then every {INTERVAL_SECONDS}s.")
     time.sleep(STARTUP_DELAY)
     while True:
-        run()
+        try:
+            run()
+        except Exception as exc:
+            log(f"[ERROR] lote falhou e o serviço continua: {exc}")
         time.sleep(INTERVAL_SECONDS)

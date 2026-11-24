@@ -155,6 +155,24 @@ def to_bool(value):
     return bool(value)
 
 
+def coordenada_sp(valor, minimo, maximo):
+    """Coordenada fora da Grande São Paulo vira nula, sem descartar o imóvel."""
+    if pd.isna(valor):
+        return None
+    numero = float(valor)
+    if numero < minimo or numero > maximo:
+        return None
+    return numero
+
+
+def ano_plausivel(ano):
+    if ano is None:
+        return None
+    if ano < 1900 or ano > date.today().year + 1:
+        return None
+    return ano
+
+
 def transform(df):
     """Converte o parquet limpo em linhas prontas para as dimensões e a fato."""
     df = df.copy()
@@ -165,41 +183,57 @@ def transform(df):
         if pd.isna(r.price) or pd.isna(r.area_m2) or r.price <= 0 or r.area_m2 <= 0:
             ignoradas += 1
             continue
-        record_id = str(r.record_id)
+        bairro = "" if pd.isna(r.neighborhood) else str(r.neighborhood).strip()
+        tipo = "" if pd.isna(r.property_type) else str(r.property_type).strip()
+        record_id = "" if pd.isna(r.record_id) else str(r.record_id).strip()
+        if not bairro or not tipo or not record_id:
+            ignoradas += 1
+            continue
         # Duas linhas com o mesmo id no mesmo INSERT derrubam a carga inteira no PostgreSQL.
         if record_id in vistos:
             ignoradas += 1
             continue
+        preco = round(float(r.price), 2)
+        area = round(float(r.area_m2), 1)
+        preco_m2 = round(preco / area, 2)
+        # Fora da faixa realista de São Paulo: dado sujo que passou da limpeza do R.
+        if preco_m2 < 200 or preco_m2 > 150_000:
+            ignoradas += 1
+            continue
         vistos.add(record_id)
-        regiao, lat_c, lon_c = BAIRROS.get(r.neighborhood, ("Desconhecida", None, None))
+        regiao, lat_c, lon_c = BAIRROS.get(bairro, ("Desconhecida", None, None))
         venda = None if pd.isna(r.sale_date) else r.sale_date.date()
-        ano_construcao = to_int(r.year_built)
+        ano_construcao = ano_plausivel(to_int(r.year_built))
+        cidade = "São Paulo" if pd.isna(r.city) or not str(r.city).strip() else str(r.city).strip()
+        condominio = None if pd.isna(r.condo_fee) else round(float(r.condo_fee), 2)
+        if condominio is not None and condominio < 0:
+            condominio = None
         rows.append({
             "record_id": record_id,
-            "bairro": r.neighborhood,
+            "bairro": bairro,
             "regiao": regiao,
-            "cidade": r.city,
+            "cidade": cidade,
             "estado": "SP",
             "lat_centro": lat_c,
             "lon_centro": lon_c,
-            "tipo": r.property_type,
-            "tipo_pt": TIPO_PT.get(r.property_type, r.property_type),
+            "tipo": tipo,
+            "tipo_pt": TIPO_PT.get(tipo, tipo),
             "carac": (
                 to_int(r.bedrooms),
                 to_int(r.bathrooms),
                 to_int(r.parking_spots),
                 to_bool(r.furnished),
-                faixa_area(float(r.area_m2)),
+                faixa_area(area),
                 faixa_idade(ano_construcao),
             ),
             "venda": venda,
-            "preco": round(float(r.price), 2),
-            "area_m2": round(float(r.area_m2), 1),
-            "preco_m2": round(float(r.price) / float(r.area_m2), 2),
-            "condominio": None if pd.isna(r.condo_fee) else round(float(r.condo_fee), 2),
+            "preco": preco,
+            "area_m2": area,
+            "preco_m2": preco_m2,
+            "condominio": condominio,
             "ano_construcao": ano_construcao,
-            "latitude": None if pd.isna(r.latitude) else float(r.latitude),
-            "longitude": None if pd.isna(r.longitude) else float(r.longitude),
+            "latitude": coordenada_sp(r.latitude, -25.5, -22.5),
+            "longitude": coordenada_sp(r.longitude, -47.8, -45.5),
         })
     return rows, ignoradas
 
@@ -301,7 +335,14 @@ def load_file(conn, path):
 
 
 def git_pull():
-    result = subprocess.run(["git", "-C", REPO_PATH, "pull", "--ff-only", "-q"], capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            ["git", "-C", REPO_PATH, "pull", "--ff-only", "-q"],
+            capture_output=True, text=True, timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        log(f"[AVISO] git pull falhou, usando arquivos locais: {exc}")
+        return
     if result.returncode != 0:
         log(f"[AVISO] git pull falhou, usando arquivos locais: {result.stderr.strip()}")
 
@@ -325,28 +366,31 @@ def main():
             return 0
 
         try:
-            with open(SCHEMA_FILE, encoding="utf-8") as f:
-                conn.execute(f.read())
-        except Exception as exc:
-            log(f"[ERRO] falha ao aplicar o schema do DW ({SCHEMA_FILE}): {exc}")
-            return 1
-
-        carregados = {row[0] for row in conn.execute("SELECT arquivo FROM dw.etl_carga WHERE status = 'concluída'")}
-        pendentes = arquivos_pendentes(carregados)
-        if not pendentes:
-            log("Nenhum arquivo novo.")
-            return 0
-
-        falhas = 0
-        for path in pendentes:
             try:
-                load_file(conn, path)
-            except Exception as exc:  # um arquivo ruim não impede os demais
-                falhas += 1
-                log(f"[ERRO] {os.path.basename(path)}: {exc}")
-        total = conn.execute("SELECT count(*) FROM dw.fato_imovel").fetchone()[0]
-        log(f"Carga finalizada: {len(pendentes) - falhas} arquivo(s), {falhas} falha(s). Fato com {total} linhas.")
-        return 1 if falhas else 0
+                with open(SCHEMA_FILE, encoding="utf-8") as f:
+                    conn.execute(f.read())
+            except Exception as exc:
+                log(f"[ERRO] falha ao aplicar o schema do DW ({SCHEMA_FILE}): {exc}")
+                return 1
+
+            carregados = {row[0] for row in conn.execute("SELECT arquivo FROM dw.etl_carga WHERE status = 'concluída'")}
+            pendentes = arquivos_pendentes(carregados)
+            if not pendentes:
+                log("Nenhum arquivo novo.")
+                return 0
+
+            falhas = 0
+            for path in pendentes:
+                try:
+                    load_file(conn, path)
+                except Exception as exc:  # um arquivo ruim não impede os demais
+                    falhas += 1
+                    log(f"[ERRO] {os.path.basename(path)}: {exc}")
+            total = conn.execute("SELECT count(*) FROM dw.fato_imovel").fetchone()[0]
+            log(f"Carga finalizada: {len(pendentes) - falhas} arquivo(s), {falhas} falha(s). Fato com {total} linhas.")
+            return 1 if falhas else 0
+        finally:
+            conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_ID,))
 
 
 if __name__ == "__main__":

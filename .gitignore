@@ -21,6 +21,14 @@ ansible/inventory.ini
 # Python
 __pycache__/
 .ipynb_checkpoints/
+.venv/
+venv/
+.pytest_cache/
+
+# R e notebook executado
+.Rhistory
+.RData
+notebooks/*.html
 
 # Sistema
 .DS_Store

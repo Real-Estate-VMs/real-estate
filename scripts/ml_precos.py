@@ -45,51 +45,69 @@ def construir_modelo():
     return Pipeline([("prep", preparo), ("modelo", floresta)])
 
 
-def main():
+def treinar():
     inicio = time.time()
     with psycopg.connect(DW_DSN) as conn:
         conn.execute("SELECT pg_advisory_lock(%s)", (LOCK_ID,))
         log("Lock do Data Warehouse obtido.")
-        df = pd.read_sql("SELECT * FROM dw.vw_imoveis", conn)
-        df = df.dropna(subset=NUMERICAS + CATEGORICAS + ["preco"]).reset_index(drop=True)
-        if len(df) < MINIMO_LINHAS:
-            log(f"Apenas {len(df)} imóveis no DW (mínimo {MINIMO_LINHAS}); nada a fazer.")
+        try:
+            df = pd.read_sql("SELECT * FROM dw.vw_imoveis", conn)
+            df = df.dropna(subset=NUMERICAS + CATEGORICAS + ["preco"]).reset_index(drop=True)
+            if len(df) < MINIMO_LINHAS:
+                log(f"Apenas {len(df)} imóveis no DW (mínimo {MINIMO_LINHAS}); nada a fazer.")
+                return 0
+            df["mobiliado"] = df["mobiliado"].astype(str)
+
+            X, y = df[NUMERICAS + CATEGORICAS], df["preco"].astype(float)
+            previsto = cross_val_predict(construir_modelo(), X, y, cv=5, n_jobs=1)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                desconto = (1 - y / previsto).replace([np.inf, -np.inf], np.nan).clip(-9.9999, 9.9999)
+            validos = pd.Series(previsto, index=df.index).gt(0) & desconto.notna()
+            if not bool(validos.all()):
+                log(f"[AVISO] {int((~validos).sum())} previsões com preço previsto inválido ficaram de fora")
+            segundos = time.time() - inicio
+
+            linhas = [
+                (r, float(p), float(d), NOME_MODELO)
+                for r, p, d, ok in zip(df["record_id"], previsto, desconto, validos)
+                if bool(ok)
+            ]
+            if not linhas:
+                log("[ERRO] nenhuma previsão válida; as previsões anteriores foram mantidas.")
+                return 1
+            mae = mean_absolute_error(y, previsto)
+            rmse = mean_squared_error(y, previsto) ** 0.5
+            mape = mean_absolute_percentage_error(y, previsto)
+            r2 = r2_score(y, previsto)
+            r2_mediana = r2_score(y, np.full(len(y), float(np.median(y))))
+            with conn.transaction():
+                conn.execute("DELETE FROM dw.previsao_preco")
+                with conn.cursor() as cur:
+                    cur.executemany(
+                        "INSERT INTO dw.previsao_preco (record_id, preco_previsto, desconto, modelo) "
+                        "VALUES (%s, %s, %s, %s)", linhas)
+                conn.execute(
+                    "INSERT INTO dw.modelo_metricas (modelo, linhas, mae, rmse, mape, r2, segundos) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (NOME_MODELO, len(df), mae, rmse, mape, r2, round(segundos, 1)))
+            abaixo = int(((~df["vendido"]) & (desconto >= 0.2)).sum())
+            log(f"{len(linhas)} imóveis previstos em {segundos:.0f}s | "
+                f"R² {r2:.3f} (mediana {r2_mediana:.3f}) | MAE R$ {mae:,.0f} | MAPE {mape:.1%} | "
+                f"{abaixo} disponíveis ≥ 20% abaixo do previsto")
             return 0
-        df["mobiliado"] = df["mobiliado"].astype(str)
+        finally:
+            conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_ID,))
 
-        X, y = df[NUMERICAS + CATEGORICAS], df["preco"].astype(float)
-        previsto = cross_val_predict(construir_modelo(), X, y, cv=5, n_jobs=1)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            desconto = (1 - y / previsto).replace([np.inf, -np.inf], np.nan).clip(-9.9999, 9.9999)
-        validos = pd.Series(previsto, index=df.index).gt(0) & desconto.notna()
-        if not bool(validos.all()):
-            log(f"[AVISO] {int((~validos).sum())} previsões com preço previsto inválido ficaram de fora")
-        segundos = time.time() - inicio
 
-        linhas = [
-            (r, float(p), float(d), NOME_MODELO)
-            for r, p, d, ok in zip(df["record_id"], previsto, desconto, validos)
-            if bool(ok)
-        ]
-        if not linhas:
-            log("[ERRO] nenhuma previsão válida; as previsões anteriores foram mantidas.")
-            return 1
-        with conn.transaction():
-            conn.execute("DELETE FROM dw.previsao_preco")
-            with conn.cursor() as cur:
-                cur.executemany(
-                    "INSERT INTO dw.previsao_preco (record_id, preco_previsto, desconto, modelo) "
-                    "VALUES (%s, %s, %s, %s)", linhas)
-            conn.execute(
-                "INSERT INTO dw.modelo_metricas (modelo, linhas, mae, rmse, mape, r2, segundos) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (NOME_MODELO, len(df), mean_absolute_error(y, previsto),
-                 mean_squared_error(y, previsto) ** 0.5, mean_absolute_percentage_error(y, previsto),
-                 r2_score(y, previsto), round(segundos, 1)))
-        abaixo = int(((~df["vendido"]) & (desconto >= 0.2)).sum())
-        log(f"{len(df)} imóveis previstos em {segundos:.0f}s | R² {r2_score(y, previsto):.3f} | "
-            f"{abaixo} disponíveis ≥ 20% abaixo do previsto")
-    return 0
+def main():
+    try:
+        return treinar()
+    except psycopg.Error as exc:
+        log(f"[ERRO] falha no Data Warehouse; confira DW_DSN: {exc}")
+        return 1
+    except Exception as exc:
+        log(f"[ERRO] treino interrompido: {exc}")
+        return 1
 
 
 if __name__ == "__main__":

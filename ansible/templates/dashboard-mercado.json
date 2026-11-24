@@ -1144,6 +1144,86 @@
           "rawSql": "SELECT treinado_em AS \"Treinado em\", linhas AS \"Imóveis\", mae AS \"MAE\", mape AS \"MAPE\", r2 AS \"R²\", segundos AS \"Segundos\" FROM dw.modelo_metricas ORDER BY id DESC LIMIT 15"
         }
       ]
+    },
+    {
+      "id": 21,
+      "type": "table",
+      "title": "Ranking de bairros (preço por m²)",
+      "description": "Mediana e taxa de venda por bairro. Respeita os filtros de região, tipo e situação.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dw-postgres"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "R$/m² médio"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyBRL"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "R$/m² mediano"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyBRL"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dw-postgres"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT bairro AS \"Bairro\", regiao AS \"Região\", COUNT(*) AS \"Imóveis\", ROUND(AVG(preco_m2), 0) AS \"R$/m² médio\", ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY preco_m2)::numeric, 0) AS \"R$/m² mediano\", ROUND(100.0 * AVG(vendido::int), 1) AS \"Venda (%)\" FROM dw.vw_imoveis WHERE regiao IN ($regiao) AND tipo_pt IN ($tipo) AND vendido IN ($situacao) GROUP BY bairro, regiao ORDER BY AVG(preco_m2) DESC LIMIT 15"
+        }
+      ]
     }
   ]
 }
