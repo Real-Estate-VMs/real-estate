@@ -4,11 +4,27 @@ library(stringr)
 library(arrow)
 
 args       <- commandArgs(trailingOnly = TRUE)
-input_file <- args[1]
+input_file <- if (length(args) >= 1) args[[1]] else ""
 repo_path  <- Sys.getenv("REPO_PATH", unset = "/home/devops/repo")
+
+if (!nzchar(input_file)) {
+  stop("Uso: Rscript scripts/processing.R <arquivo.csv>")
+}
+if (!file.exists(input_file)) {
+  stop("Arquivo não encontrado: ", input_file)
+}
 
 cat("==> Lendo arquivo:", input_file, "\n")
 dados <- read.csv(input_file, na.strings = c("", "NA"), fileEncoding = "UTF-8")
+
+obrigatorias <- c(
+  "record_id", "neighborhood", "city", "state", "property_type",
+  "bedrooms", "price", "area_m2", "sale_date"
+)
+faltando <- setdiff(obrigatorias, names(dados))
+if (length(faltando) > 0) {
+  stop("Colunas faltantes: ", paste(faltando, collapse = ", "))
+}
 
 # ── Exploração inicial (roteiro de aula) ────────────────────────────────────
 cat("\n-- Estrutura do dataset --\n")
@@ -70,17 +86,21 @@ cat("  Registros depois:", total_depois, "\n")
 cat("  Removidos       :", removidos, "\n")
 
 # ── Análise após limpeza ─────────────────────────────────────────────────────
-cat("\n-- Estatísticas de price após limpeza --\n")
-cat("  Mínimo :", min(dados_limpos$price), "\n")
-cat("  Máximo :", max(dados_limpos$price), "\n")
-cat("  Média  :", mean(dados_limpos$price), "\n")
+if (total_depois == 0L) {
+  cat("\n==> Nenhum registro restou após a limpeza. O parquet sai vazio.\n")
+} else {
+  cat("\n-- Estatísticas de price após limpeza --\n")
+  cat("  Mínimo :", min(dados_limpos$price), "\n")
+  cat("  Máximo :", max(dados_limpos$price), "\n")
+  cat("  Média  :", mean(dados_limpos$price), "\n")
 
-cat("\n-- Maior price por neighborhood --\n")
-dados_limpos |>
-  group_by(neighborhood) |>
-  summarise(preco_medio = mean(price), total = n()) |>
-  arrange(desc(preco_medio)) |>
-  print()
+  cat("\n-- Maior price por neighborhood --\n")
+  dados_limpos |>
+    group_by(neighborhood) |>
+    summarise(preco_medio = mean(price), total = n(), .groups = "drop") |>
+    arrange(desc(preco_medio)) |>
+    print()
+}
 
 # ── Exportação ───────────────────────────────────────────────────────────────
 output_dir <- file.path(dirname(dirname(input_file)), "processed")

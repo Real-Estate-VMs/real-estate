@@ -13,6 +13,7 @@ import sys
 import time
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import psycopg
 from sklearn.compose import ColumnTransformer
@@ -24,6 +25,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 DW_DSN = os.getenv("DW_DSN", "dbname=realestate")
 MINIMO_LINHAS = int(os.getenv("ML_MINIMO_LINHAS", 500))  # abaixo disso o modelo não é confiável
+LOCK_ID = 2026_11_10  # o mesmo do ETL: os dois não escrevem no DW ao mesmo tempo
 NUMERICAS = ["area_m2", "quartos", "banheiros", "vagas", "condominio", "ano_construcao"]
 CATEGORICAS = ["tipo_pt", "regiao", "bairro", "mobiliado"]
 NOME_MODELO = "RandomForest(100, leaf=5, max_features=0.5)"
@@ -46,6 +48,8 @@ def construir_modelo():
 def main():
     inicio = time.time()
     with psycopg.connect(DW_DSN) as conn:
+        conn.execute("SELECT pg_advisory_lock(%s)", (LOCK_ID,))
+        log("Lock do Data Warehouse obtido.")
         df = pd.read_sql("SELECT * FROM dw.vw_imoveis", conn)
         df = df.dropna(subset=NUMERICAS + CATEGORICAS + ["preco"]).reset_index(drop=True)
         if len(df) < MINIMO_LINHAS:
@@ -55,10 +59,21 @@ def main():
 
         X, y = df[NUMERICAS + CATEGORICAS], df["preco"].astype(float)
         previsto = cross_val_predict(construir_modelo(), X, y, cv=5, n_jobs=1)
-        desconto = (1 - y / previsto).clip(-9.9999, 9.9999)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            desconto = (1 - y / previsto).replace([np.inf, -np.inf], np.nan).clip(-9.9999, 9.9999)
+        validos = pd.Series(previsto, index=df.index).gt(0) & desconto.notna()
+        if not bool(validos.all()):
+            log(f"[AVISO] {int((~validos).sum())} previsões com preço previsto inválido ficaram de fora")
         segundos = time.time() - inicio
 
-        linhas = [(r, float(p), float(d), NOME_MODELO) for r, p, d in zip(df["record_id"], previsto, desconto)]
+        linhas = [
+            (r, float(p), float(d), NOME_MODELO)
+            for r, p, d, ok in zip(df["record_id"], previsto, desconto, validos)
+            if bool(ok)
+        ]
+        if not linhas:
+            log("[ERRO] nenhuma previsão válida; as previsões anteriores foram mantidas.")
+            return 1
         with conn.transaction():
             conn.execute("DELETE FROM dw.previsao_preco")
             with conn.cursor() as cur:

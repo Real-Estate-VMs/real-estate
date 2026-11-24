@@ -160,15 +160,22 @@ def transform(df):
     df = df.copy()
     df["sale_date"] = pd.to_datetime(df["sale_date"], errors="coerce")
     rows, ignoradas = [], 0
+    vistos = set()
     for r in df.itertuples(index=False):
         if pd.isna(r.price) or pd.isna(r.area_m2) or r.price <= 0 or r.area_m2 <= 0:
             ignoradas += 1
             continue
+        record_id = str(r.record_id)
+        # Duas linhas com o mesmo id no mesmo INSERT derrubam a carga inteira no PostgreSQL.
+        if record_id in vistos:
+            ignoradas += 1
+            continue
+        vistos.add(record_id)
         regiao, lat_c, lon_c = BAIRROS.get(r.neighborhood, ("Desconhecida", None, None))
         venda = None if pd.isna(r.sale_date) else r.sale_date.date()
         ano_construcao = to_int(r.year_built)
         rows.append({
-            "record_id": str(r.record_id),
+            "record_id": record_id,
             "bairro": r.neighborhood,
             "regiao": regiao,
             "cidade": r.city,
@@ -266,20 +273,21 @@ def load_file(conn, path):
 
         cur.execute("SELECT count(*) FROM dw.fato_imovel")
         antes = cur.fetchone()[0]
-        cur.executemany(
-            "INSERT INTO dw.fato_imovel (record_id, sk_localizacao, sk_tempo, sk_tipo, sk_caracteristicas, "
-            "id_carga, vendido, preco, area_m2, preco_m2, condominio, ano_construcao, latitude, longitude) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT (record_id) DO NOTHING",
-            [
-                (
-                    r["record_id"], loc[r["bairro"]], sk_tempo(r["venda"]), tipo[r["tipo"]], carac[r["carac"]],
-                    id_carga, r["venda"] is not None, r["preco"], r["area_m2"], r["preco_m2"],
-                    r["condominio"], r["ano_construcao"], r["latitude"], r["longitude"],
-                )
-                for r in rows
-            ],
-        )
+        if rows:
+            cur.executemany(
+                "INSERT INTO dw.fato_imovel (record_id, sk_localizacao, sk_tempo, sk_tipo, sk_caracteristicas, "
+                "id_carga, vendido, preco, area_m2, preco_m2, condominio, ano_construcao, latitude, longitude) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                "ON CONFLICT (record_id) DO NOTHING",
+                [
+                    (
+                        r["record_id"], loc[r["bairro"]], sk_tempo(r["venda"]), tipo[r["tipo"]], carac[r["carac"]],
+                        id_carga, r["venda"] is not None, r["preco"], r["area_m2"], r["preco_m2"],
+                        r["condominio"], r["ano_construcao"], r["latitude"], r["longitude"],
+                    )
+                    for r in rows
+                ],
+            )
         cur.execute("SELECT count(*) FROM dw.fato_imovel")
         inseridas = cur.fetchone()[0] - antes
         ignoradas += len(rows) - inseridas

@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS dw.fato_imovel (
 CREATE INDEX IF NOT EXISTS ix_fato_localizacao ON dw.fato_imovel (sk_localizacao);
 CREATE INDEX IF NOT EXISTS ix_fato_tempo       ON dw.fato_imovel (sk_tempo);
 CREATE INDEX IF NOT EXISTS ix_fato_tipo        ON dw.fato_imovel (sk_tipo);
+CREATE INDEX IF NOT EXISTS ix_fato_vendido     ON dw.fato_imovel (vendido);
+CREATE INDEX IF NOT EXISTS ix_fato_carga       ON dw.fato_imovel (id_carga);
 
 -- ── Views analíticas (OLAP) ──────────────────────────────────────────────────
 -- Visão "achatada" do cubo: base para slice e dice (filtros) no Grafana e no notebook
